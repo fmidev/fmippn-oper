@@ -1,0 +1,13 @@
+name: fmippn
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - git
+  - numpy
+  - h5py
+  - pillow
+  - dask
+  - pyfftw
+  - pysteps=1.1.1

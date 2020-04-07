@@ -1,0 +1,35 @@
+{
+  "DOMAIN": "fmi_realtime_ravake_docker",
+  "NOWCAST_TIMESTEP": 5,
+  "MAX_LEADTIME": 90,
+  "ENSEMBLE_SIZE": 15,
+  "NUM_WORKERS": 30,
+  "GENERATE_UNPERTURBED": true,
+  "REGENERATE_PERTURBED_MOTION": true,
+  "GENERATE_DETERMINISTIC": true,
+  "OUTPUT_PATH": "~/fmippn-run/fmippn-run-and-distribution/output",
+  "STORE_MOTION": true,
+  "STORE_ENSEMBLE": true,
+  "STORE_DETERMINISTIC": true,
+  "SEED": 20190823,
+  "FIELD_VALUES": "dbz",
+  "VALUE_DOMAIN": "dbz",
+  "SCALER": 10,
+  "WRITE_LOG": true,
+  "LOG_LEVEL": 10,
+  "LOG_FOLDER": "~/fmippn-run/fmippn-run-and-distribution/logs",
+  "RAIN_THRESHOLD": -10,
+  "NORAIN_VALUE": -15,
+  "VEL_PERT_KWARGS": {
+    "p_par": [
+      0,
+      0,
+      0
+    ],
+    "p_perp": [
+      0,
+      0,
+      0
+    ]
+  }
+}
