@@ -19,6 +19,7 @@ generating the file is to run following command on command line:
 """
 import logging
 import json
+import os
 
 def get_params(name):
     """Utility function for easier access to wanted parametrizations.
@@ -40,8 +41,16 @@ def get_params(name):
     if name == "defaults":
         params = defaults
     else:
+        name = os.path.splitext(name)[0] + ".json"
+        if os.path.exists(name):
+            cfname = name
+        else:
+            cfpath = os.path.realpath(__file__)
+            cfpath = os.path.split(cfpath)[0]
+            cfname = os.path.join(cfpath, "config/", name)
+        print(f"Using PPN configuration from {cfname}")
         try:
-            with open(f"config/{name}.json", "r") as f:
+            with open(cfname, "r") as f:
                 params = json.load(f)
         except FileNotFoundError:
             params = dict()
@@ -92,6 +101,7 @@ defaults = {
     "NORAIN_VALUE": 1.5,  # Threshold minus 5 (dB) units. Roughly 0.04 mm/h using above
     "KMPERPIXEL": 1.0,
     "SEED": None,  # Default value in pysteps is None
+    "CALCULATION_DOMAIN": "spectral",  # "spatial" or "spectral", see also pysteps.nowcasts.steps() documentation
     # Motion perturbation parameters
     # Set to VEL_PERT_KWARGS to `None` to use pysteps's default values
     "VEL_PERT_METHOD": "bps",

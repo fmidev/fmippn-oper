@@ -3,11 +3,12 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.7
+  - python>=3.7
   - git
   - numpy
+  - scipy
   - h5py
   - pillow
+  - pysteps>=1.2
   - dask
   - pyfftw
-  - pysteps=1.1.1

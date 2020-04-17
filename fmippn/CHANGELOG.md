@@ -3,9 +3,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-This project DOES NOT adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Instead, version numbering will be a running number. Each major number increases when a dependency module is upgraded, added, or removed (e.g. pysteps). Each minor number increases when a research version is updated, either by RAS or PAK.
+Currently this project DOES NOT adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v3.0] - 2020-01-29
+## 2020-04-17
+### Added
+- Parameter for calculation domain ("spatial" or "spectral")
+- `scipy` to `environment.yml`
+
+### Changed
+- Updated README.md
+- Configuration files can now be stored anywhere, as long as full path is used for `-c` parameter values
+- Updated requirement for `python` (Used to be `=3.7`, now is `>=3.7`)
+- Updated requirement for `pysteps` (Used to be `=1.1`, now is `>=1.2`)
+- Moved `environment.yml` to main folder
+- `-t` is now shorthand for `--timestamp` command line argument
+
+### Removed
+- References to version numbers from changelog, as they don't reflect the current situation anymore
+- Obsolete `--test` command line argument
+
+## 2020-01-29
 ### Added
 - Folder for configuration files
 - Utility functions for generating a configuration json file
@@ -26,7 +43,7 @@ This project DOES NOT adhere to [Semantic Versioning](https://semver.org/spec/v2
 - Input data is now thresholded properly
 - Now it is possible to output values in mm/h, even if calculations are done in dBZ
 
-## [v2.1] - 2019-12-20
+## 2019-12-20
 ### Added
 - New parametrisations and configurations for operational use
 - Usage and Configuration descriptions to readme
@@ -47,7 +64,7 @@ This project DOES NOT adhere to [Semantic Versioning](https://semver.org/spec/v2
 - Removed unused import from `utils`
 - Version tag links in changelog
 
-## [v2.0] - 2019-09-02
+## 2019-09-02
 ### Added
 - Changelog
 - New dependency: pysteps (1.0.0)
@@ -70,7 +87,7 @@ This project DOES NOT adhere to [Semantic Versioning](https://semver.org/spec/v2
 ### Removed
 - Extra dependencies that were unused or no longer needed
 
-## [v1.1] - 2019-05-06
+## 2019-05-06
 ### Added
 - New parameters: `SEED`, `ZR_A`, `ZR_B`, `SCALE_ZERO`, `SCALER`, `FIELD_VALUES`
 - Now it is possible to set random number generator seed via `SEED` parameter
@@ -79,18 +96,11 @@ This project DOES NOT adhere to [Semantic Versioning](https://semver.org/spec/v2
 - Scaling parameter in output file can now be set via parameter `SCALER`
 - Scaling offset in output file can now be set via `SCALE_ZERO` parameter
 - Program uses nowcast data array's minimum non-NaN value as scaling offset, unless given via configuration parameters
-- Parameters `SEED` and `FIELD_VALUES` are stored in output file`s metadata
+- Parameters `SEED` and `FIELD_VALUES` are stored in output file's metadata
 
 ### Changed
 - "Valid for" attribute in output file is now an integer (was: string)
 - `OUTPUT_TIME_FORMAT` parameter no longer affects the "Valid for" attribute
 
-## [v1.0] - 2019-01-22
+## 2019-01-22
 - First prototype version given to operational testing
-
-[v3.0]: https://github.com/fmidev/fmippn/compare/v2.1...v3.0
-[v2.1]: https://github.com/fmidev/fmippn/compare/v2.0...v2.1
-[v2.0]: https://github.com/fmidev/fmippn/compare/v1.1...v2.0
-[v1.1]: https://github.com/fmidev/fmippn/compare/v1.0...v1.1
-[v1.0]: https://github.com/fmidev/fmippn/releases/tag/v1.0
-
