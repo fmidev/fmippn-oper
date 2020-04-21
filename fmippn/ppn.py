@@ -33,15 +33,9 @@ def run(timestamp=None, config=None, **kwargs):
         config -- Configuration parameter. If None, use defaults. (default=None)
 
     Optional keyword arguments:
-        test -- If True, use development configuration (default=False)
+        (none)
     """
     nc_fname = None
-
-    if kwargs.get("test", False):
-        # Use frontal precipitation event (verification) for development
-        config = "test"
-        timestamp = "201506231400"
-        nc_fname = "00_test_output.h5"  # Development name for output file
 
     PD.update(get_config(config))
 
@@ -285,6 +279,7 @@ def generate_pysteps_setup():
         "vel_pert_method": PD["VEL_PERT_METHOD"],
         "vel_pert_kwargs": PD["VEL_PERT_KWARGS"],
         "seed": PD["SEED"],
+        "domain": PD.get("CALCULATION_DOMAIN", "spatial")
     }
 
     # This threshold is used in masking and probability masking

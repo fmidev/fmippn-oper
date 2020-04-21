@@ -10,7 +10,10 @@ Currently FMI-PPN uses [pysteps](https://pysteps.github.io) to generate ensemble
 
 ## Known issues and limitations
 - Parameter `SEED` must be `None` or an integer between `0` and `2**32 - 1`. This is a limitation in `numpy.random`.
-- OpenMPI conflicts with dask when both are installed, leading to significant decrease FMI-PPN performance. Workaround is to set OpenMPI use only one thread. In Linux you can set environment variable `OMP_NUM_THREADS=1`.
+- OpenMPI conflicts with dask when both are installed, leading to significant decrease FMI-PPN performance.
+  - Workaround is to set OpenMPI use only one thread. In Linux you can set environment variable `OMP_NUM_THREADS=1`.
+  - Alternatively: uninstall `dask` from conda environment
+- `pyfftw <0.12.0` is incompatible with `scipy 1.4`.
 
 ## Usage
 ### Installation
@@ -24,7 +27,7 @@ Currently FMI-PPN uses [pysteps](https://pysteps.github.io) to generate ensemble
 8. Run FMI-PPN with default settings: `$ python run_ppn.py`
 
 ### Running FMI-PPN
-Before running FMI-PPN, you should configure pysteps (via `pystepsrc` file) and PPN by adding your parametrisations to `ppn_config.py`.
+Before running FMI-PPN, you should configure pysteps (via `pystepsrc` file) and PPN by adding your parametrisations to a config file (see below).
 
 How to run:
 1. Activate your conda environment
@@ -39,6 +42,7 @@ The `ppn_config.py` module has a utility function `dump_defaults()` for creating
 ### Parametrisations
 Parameter|Explanation|Default value
 ----|----|----
+`CALCULATION_DOMAIN`|Choose if the nowcast calculation is performed in spatial (`spatial`) or spectral (`spectral`) domain. See also [pysteps documentation](https://pysteps.readthedocs.io/en/latest/generated/pysteps.nowcasts.steps.forecast.html#pysteps.nowcasts.steps.forecast).|`spectral`
 `DOMAIN`|Data source used from pystepsrc|`fmi`
 `ENSEMBLE_SIZE`|Number of ensemble members|`24`
 `FFT_METHOD`|FFT method used in pysteps calculations|`pyfftw`

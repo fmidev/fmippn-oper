@@ -22,10 +22,8 @@ def get_input_arguments():
     # Add more options if necessary
     parser = argparse.ArgumentParser(description="Command line interface for FMI-PPN")
     parser.add_argument("-c", "--config", help="Select configuration settings")
-    parser.add_argument("--timestamp", help="Nowcast initialization time",
+    parser.add_argument("-t", "--timestamp", help="Nowcast initialization time",
                         metavar="YYYYMMDDHHMM")
-    parser.add_argument("-t", "--test", action="store_true",
-                        help="Run using development parameters")
 
     return vars(parser.parse_args())
 
