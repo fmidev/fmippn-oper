@@ -1,0 +1,3 @@
+SHELL=/bin/bash
+# fmippn operatiivinen testi TULISET-vertailua varten
+3-59/5 * * * * $HOME/fmippn-oper/run-and-distribution/run_fmippn_common.sh --DOMAIN=ravake > $HOME/log/cron_opertest.log 2>&1

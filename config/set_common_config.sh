@@ -44,9 +44,10 @@ export PREPROCDIR=$OPERDIR/preprocess
 export POSTPROCDIR=$OPERDIR/postprocess
 export LOGDIR=$OPERDIR/log
 
-export PPNLOG=$LOGDIR/ppn_${DOMAIN}_run.log
-export POSTPROCLOG=$LOGDIR/postproc_${DOMAIN}_run.log
-export PREPROCLOG=$LOGDIR/preproc_${DOMAIN}_run.log
+export PPNLOG=$LOGDIR/ppn_DOMAIN=${DOMAIN}.log
+export POSTPROCLOG=$LOGDIR/postproc_DOMAIN=${DOMAIN}.log
+export PREPROCLOG=$LOGDIR/preproc_DOMAIN=${DOMAIN}.log
+export DISTRIBLOG=$LOGDIR/distrib_DOMAIN=${DOMAIN}.log
 
 export LD_LIBRARY_PATH=`cat $CONFDIR/ld_library_path`
 export PYTHON=$HOME/miniconda3/envs/fmippn/bin/python
@@ -69,6 +70,7 @@ export OBSDIR=$PPN_OUTPUT_DIR/obs # Contains the latest observed radar field
 export ENSMEANDIR=$PPN_OUTPUT_DIR/ensmean
 export PROBDIR=$PPN_OUTPUT_DIR/prob
 export VISUALDIR=$PPN_OUTPUT_DIR/visual
+export DISTRIBDIR=$PPN_OUTPUT_DIR/distrib
 
 if [ ! -d $PPN_OUTPUT_DIR ]; then mkdir -p $PPN_OUTPUT_DIR ; fi
 if [ ! -d $OBSDIR ]; then mkdir -p $OBSDIR ; fi
@@ -76,6 +78,7 @@ if [ ! -d $INTERPDIR ]; then mkdir -p $INTERPDIR ; fi
 if [ ! -d $ENSMEANDIR ]; then mkdir -p $ENSMEANDIR ; fi
 if [ ! -d $PROBDIR ]; then mkdir -p $PROBDIR ; fi
 if [ ! -d $VISUALDIR ]; then mkdir -p $VISUALDIR ; fi
+if [ ! -d $DISTRIBDIR ]; then mkdir -p $DISTRIBDIR ; fi
 
 # Set possible environment variables for postprocessing of the domain data
 export POSTPROC_CONF=$CONFDIR/postproc_DOMAIN=${DOMAIN}.conf
@@ -154,6 +157,7 @@ if [ $LIST ]; then
        echo PPNLOG=${PPNLOG}
        echo POSTPROCLOG=${POSTPROCLOG}
        echo PREPROCLOG=${PREPROCLOG}
+       echo DISTRIBLOG=${DISTRIBLOG}
 
        echo PYTHON=${PYTHON}
        echo START_CONDA=${START_CONDA}
@@ -167,6 +171,7 @@ if [ $LIST ]; then
        echo ENSMEANDIR=${ENSMEANDIR}
        echo PROBDIR=${PROBDIR}
        echo VISUALDIR=${VISUALDIR}
+       echo DISTRIBDIR=${DISTRIBDIR}
        echo INPUT_DATAROOT=${INPUT_DATAROOT}
        echo INPUT_DATADIR=${INPUT_DATADIR}
        echo INPUT_PATH=${INPUT_PATH}
@@ -174,14 +179,14 @@ if [ $LIST ]; then
        echo OBSFILE=${OBSFILE}
        echo TIMESTAMP=${TIMESTAMP}
        echo PPN_OUTPUT_FILE=${PPN_OUTPUT_FILE}
-       echo "CPU cores per member for parallel execution is pySTEPS:"
+       echo -n "CPU cores per member for parallel execution in pySTEPS: "
        echo OMP_NUM_THREADS=${OMP_NUM_THREADS}
 
        echo '_________________________________'
        echo "Configuration files"
        echo '_________________________________'
-       echo -e "\n"PYSTEPSRC=${PYSTEPSRC}" :\n"
-       cat $PYSTEPSRC
+       echo -e "\n"PYSTEPSRC=${PYSTEPSRC}", configuration of \"${DOMAIN}\" data source \n"
+       cat $PYSTEPSRC | grep  -A100 -B1 \"${DOMAIN}\": | grep -m2 -B100 \/\/ | head --lines=-1
        echo '_________________________________'
        echo -e "\n"DOMAINCONF=${DOMAINCONF}" :\n"    
        cat $DOMAINCONF
@@ -207,4 +212,3 @@ fi
 # Activate fmippn in conda
 conda activate fmippn
 
-echo OMP_NUM_THREADS=${OMP_NUM_THREADS}

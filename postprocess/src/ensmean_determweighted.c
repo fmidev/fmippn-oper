@@ -246,6 +246,7 @@ int main(int argc, char *argv[])
 	    fclose(PGMF);
 	 }
 
+# endif
 
       /* Write deterministic */
 	 if(DETERM)
@@ -257,7 +258,7 @@ int main(int argc, char *argv[])
             fwrite(dBZdata,1,arrsize,PGMF);
             fclose(PGMF);
          }
-# endif
+
 
      }
 

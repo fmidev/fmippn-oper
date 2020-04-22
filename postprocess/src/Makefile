@@ -1,10 +1,9 @@
 COMPILER = gcc
 CFLAGS =  -O2 -std=c99 -Wall -DLINUX -MMD -D_GNU_SOURCE -D_REENTRANT
-# LIBDIRS = -L/usr/local/lib
-# INCDIRS = -L/usr/local/include
-LIBDIRS = -L/var/opt/lib
-INCDIRS = -I/var/opt/include
+LIBDIRS = -L. -L./lib_local -L/var/opt/lib
+INCDIRS = -I./include_local -I/var/opt/include 
 LIBS = -lhdf5_hl -lhdf5 -lz -lsz -lm
+GDLIBS = -lm -lgd
 GDALLIBS = -lhdf5_hl -lhdf5 -lz -lsz -lm -lproj -lgdal
 PTHLIBS = -lpthread -lhdf5_hl -lhdf5 -lz -lsz -lm 
 LDOPTS =
@@ -16,6 +15,9 @@ all	: $(EXES)
 
 ensmean:	ensmean.o
 		$(CC) ensmean.o -o ensmean $(LDOPTS) $(LIBDIRS) $(LIBS)
+
+gdmap:	gdmap.o
+		$(CC) gdmap.o -o gdmap $(LDOPTS) $(LIBDIRS) $(GDLIBS)
 
 ensmean_determweighted:	ensmean_determweighted.o
 		$(CC) ensmean_determweighted.o -o ensmean_determweighted $(LDOPTS) $(LIBDIRS) $(LIBS)
@@ -31,6 +33,9 @@ getmotion:	getmotion.o
 
 prob_thresholding:	prob_thresholding.o
 		$(CC) prob_thresholding.o -o prob_thresholding $(LDOPTS) $(LIBDIRS) $(GDALLIBS) 
+
+reprojection_radardata:	reprojection_radardata.o
+		$(CC) reprojection_radardata.o -o reprojection_radardata $(LDOPTS) $(LIBDIRS) $(GDALLIBS)
 
 install	:
 		@\cp $(EXES) ~/ppn/fmippn-postprocess/bin

@@ -41,15 +41,16 @@
             "timestep": 5,
             "importer_kwargs": {"gzipped": false}
         },
-	// Europe area composite, 2km resolution ODIM HDF5 
+	// Europe area composite, 2km resolution PGM 
 	"europe": {
-	    "root_path":"/dev/shm/ppn",
-    	    "path_fmt": "obs",
+            "root_path": "~/fmippn-oper",
+            "path_fmt": "testdata",
     	    "fn_pattern": "%Y%m%d%H%M_fmi.radar.composite.Europe_EUR_ODYSSEY",
-	    "fn_ext": "h5",
-    	    "importer": "opera_hdf5",
+	    "fn_ext": "pgm",
+    	    "importer": "fmi_pgm",
     	    "timestep": 15,
-    	    "importer_kwargs": {"qty": "DBZH"}
+            "importer_kwargs": {"gzipped": false}
 	}	    
+	// END
     }
 }	

@@ -13,6 +13,9 @@ fi
 
 source $HOME/fmippn-oper/config/set_common_config.sh
 
+cd $PREPROCDIR
+./run_preprocesses.sh  >> $PREPROCLOG 2>&1
+
 cd $PPNDIR
 echo "PPN processing for domain \"${DOMAIN}\" at $TIMESTAMP to output $PPN_OUTPUT_FILE started at"
 date
@@ -24,7 +27,8 @@ date
 $PYTHON run_ppn.py --timestamp=${TIMESTAMP} --config=${DOMAIN}  # >> $PPNLOG 2>&1
 
 cd $POSTPROCDIR
-./run_postprocesses.sh # >> $POSTPROCLOG 2>&1
+./run_postprocesses.sh  >> $POSTPROCLOG 2>&1
+./run_distribution.sh >> $DISTRIBLOG 2>&1
 echo "PPN processing for domain \"${DOMAIN}\" of $TIMESTAMP ended at"
 date
 echo
