@@ -11,7 +11,7 @@ if [ ! $DOMAIN ]; then
       exit 1
 fi
 
-source $HOME/fmippn-oper/config/set_common_config.sh
+source $HOME/fmippn-oper/config/set_common_config.sh  #activate conda env in the end
 
 cd $PREPROCDIR
 ./run_preprocesses.sh  >> $PREPROCLOG 2>&1
@@ -24,6 +24,8 @@ conda info -e
 
 echo "PPN processing for domain \"${DOMAIN}\" of $TIMESTAMP started at"
 date
+cmd="$PYTHON run_ppn.py --timestamp=${TIMESTAMP} --config=${DOMAIN}"
+echo $cmd
 $PYTHON run_ppn.py --timestamp=${TIMESTAMP} --config=${DOMAIN}  # >> $PPNLOG 2>&1
 
 cd $POSTPROCDIR
