@@ -12,4 +12,6 @@ fi
 
 cd $POSTPROCDIR
 echo $TIMESTAMP $PPN_OUTPUT_FILE $LATEST_OBSFILE $INTERPDIR $INTERP_STEPS
+find $INTERPDIR -name ${INTERP_NC_ACCPREF}'*' -exec rm -f {} \;
+find $INTERPDIR -name '*.p?m' -exec rm -f {} \;
 bin/thread_member_interp $TIMESTAMP $PPN_OUTPUT_FILE $LATEST_OBSFILE $INTERPDIR $DOMAIN $INTERP_STEPS

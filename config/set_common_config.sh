@@ -34,6 +34,7 @@ fi
 
 export TZ=UTC
 
+export CONDAENV=${CONDAENV:-'fmippn'}
 export DOMAIN=${DOMAIN:-'test'}
 export OPERDIR=$HOME/fmippn-oper
 export CONFDIR=$OPERDIR/config
@@ -43,6 +44,9 @@ export RUNDIR=$OPERDIR/run-and-distribution
 export PREPROCDIR=$OPERDIR/preprocess
 export POSTPROCDIR=$OPERDIR/postprocess
 export LOGDIR=$OPERDIR/log
+
+# define common functions
+source $CONFDIR/common_functions.sh
 
 export PPNLOG=$LOGDIR/ppn_DOMAIN=${DOMAIN}.log
 export POSTPROCLOG=$LOGDIR/postproc_DOMAIN=${DOMAIN}.log
@@ -142,6 +146,7 @@ if [ $LIST ]; then
        echo '_________________________________'
        echo -e "Environment\n"
        echo '_________________________________'
+       echo CONDAENV=${CONDAENV}
        echo DOMAIN=${DOMAIN}
        echo OPERDIR=${OPERDIR}
        echo CONFDIR=${CONFDIR}
@@ -210,5 +215,5 @@ if [ $? != 0 ]; then
 fi
 
 # Activate fmippn in conda
-conda activate fmippn
+conda activate $CONDAENV
 

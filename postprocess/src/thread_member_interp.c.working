@@ -709,12 +709,11 @@ void *interpolation_thread(void *arg)
      time_t ncsecs;
      char nowcstamp[15],intstamp[15];
      char outpath[250];
-     uint8_t WRITE_dBZ,LAST_TIMESTEP=0;
+     uint8_t WRITE_dBZ;
      FILE *OUTFILE;
 
      mI=Th_info->member;
-     tI=Th_info->tI;
-     if(tI+1 == timesteps) LAST_TIMESTEP=1; 
+     tI=Th_info->tI;;
 
      ncsecs=dT*(tI+1);
      date_from_sec(nowcstamp,obsecs+ncsecs);
@@ -784,13 +783,6 @@ void *interpolation_thread(void *arg)
            /* Advect nodata area from past field to next future nc field (starts with advecting nodata from obs data) */
            offN = OneStepMotion[mI][N];
            if(offN<0 || pastZIarrPtr[mI][offN]==newNodata) futuZIarrPtr[mI][N]=newNodata;
-	   /*
-           if(LAST_TIMESTEP)
-	   {           
-              futuZI = futuZIarrPtr[mI][futuN];
-              futuAcc = AccFromZI[futuZI];
-	   }
-	   */
      }
      /*     printf("Interpolated step  02%d member 02%d for time %s\n",tI,mI,nowcstamp); */
 

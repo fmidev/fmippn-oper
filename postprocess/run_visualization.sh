@@ -4,9 +4,13 @@ if [ ! $VISUALDIR ]; then
    shift
    source ~/fmippn-oper/config/set_common_config.sh
 fi
+source $CONFDIR/common_functions.sh
 
 cd $POSTPROCDIR
 BIN=${POSTPROCDIR}/bin
+
+set_BeginTime
+echo "Visualization start $BeginStamp"
 
 if [ "$DOMAIN" == "ravake" ]; then
 
@@ -28,7 +32,7 @@ if [ "$DOMAIN" == "ravake" ]; then
 
    for MZ in `ls -1 $INTERPDIR/EnsmeandBZ_${TIMESTAMP}-???????????{0,5}+*.pgm` ; do
       TIMES=`basename -s .pgm ${MZ#*_} | cut -d+ -f1`
-      MIN=${T:11}
+      NOWCMIN=${TIMES:24:1}
 
       SUOMI_MEAN=M_"$TIMES"_SUOMI1_dBZ.pgm
       pamcut 200 400 760 1226 $MZ > $SUOMI_MEAN
@@ -37,19 +41,23 @@ if [ "$DOMAIN" == "ravake" ]; then
       pamtogif ${SUOMI_MEAN%.*}.ppm > ${SUOMI_MEAN%.*}.gif
 
       SUOMI_DETERM=D_"$TIMES"_SUOMI1_dBZ.pgm
-      DZ=$INTERPDIR/dBZ_M00_"$T"00.pgm
-      pamcut 200 400 760 1226 $DZ > $SUOMI_DETERM
-      $BIN/gdmap $SUOMI_DETERM ${SUOMI_DETERM%.*}.ppm 'PPN deterministic dBZ'
-      pamtogif ${SUOMI_DETERM%.*}.ppm > ${SUOMI_DETERM%.*}.gif
+      DZ=$INTERPDIR/dBZ_M00_"$TIMES"00.pgm
+      if [ -e $DZ ]; then
+         pamcut 200 400 760 1226 $DZ > $SUOMI_DETERM
+         $BIN/gdmap $SUOMI_DETERM ${SUOMI_DETERM%.*}.ppm 'PPN deterministic dBZ'
+         pamtogif ${SUOMI_DETERM%.*}.ppm > ${SUOMI_DETERM%.*}.gif
+      fi
 
-      echo $T
+      echo $TIMES
 
       if [ "$ORIGMINS" == "00" ] || [ "$ORIGMINS" == "30" ]; then
          DOLOOP=1
-         if [ "$MIN" == "0" ]; then
-            TUL=`ls -1 /mnt/meru/data/prod/radman/fmi/prod/run/fmi/radar/tuliset/pic/G_"$TIMESTAMP"-"$T".gif`
+         if [ "$NOWCMIN" == "0" ]; then
+            TUL=`ls -1 /mnt/meru/data/prod/radman/fmi/prod/run/fmi/radar/tuliset/pic/G_"$TIMES".gif`
             if [ "$TUL" != "" ]; then
-               montage -tile x1 -geometry 100% -border 3x3 -background black -frame 0 $TUL ${SUOMI_DETERM%.*}.gif ${SUOMI_MEAN%.*}.gif "$TIMES"_TULISET+PPN.gif
+               if [ -e $DZ ]; then
+                  montage -tile x1 -geometry 100% -border 3x3 -background black -frame 0 $TUL ${SUOMI_DETERM%.*}.gif ${SUOMI_MEAN%.*}.gif "$TIMES"_TULISET+PPN.gif
+               fi
             fi
          fi
       fi
@@ -89,4 +97,8 @@ if [ "$DOMAIN" == "ravake" ]; then
 
 fi
 
+get_Runtime
+echo "Visualization end $EndStamp"
+echo "Visualization runtime $Runtime s"
+ 
 exit
