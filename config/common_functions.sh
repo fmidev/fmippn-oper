@@ -5,11 +5,15 @@ set_BeginTime () {
    BeginStamp=`echo ${BeginTime%+*} | tr T ' '`
 }
 
+timediff() {
+   Dtime=$((`date -d "$EndTime" +%s`-`date -d "$BeginTime" +%s`))
+}
 
 # This function sets the variable "Runtime" as seconds between $BeginTime 
 # and the current time. It also sets the variables below.
 get_Runtime() {
    EndTime=`date -u -Iseconds`
    EndStamp=`echo ${EndTime%+*} | tr T ' '`
-   Runtime=$((`date -d "$EndTime" +%s`-`date -d "$BeginTime" +%s`))
+   timediff
+   Runtime=$Dtime
 }

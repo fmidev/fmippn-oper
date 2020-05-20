@@ -1,5 +1,5 @@
-prob_thresholding.o: prob_thresholding.c /var/opt/include/projects.h \
- /var/opt/include/proj_api.h /var/opt/include/hdf5.h \
+prob_thresholding.o: prob_thresholding.c include_local/projects.h \
+ include_local/proj_api.h /var/opt/include/hdf5.h \
  /var/opt/include/H5public.h /var/opt/include/H5pubconf.h \
  /var/opt/include/H5version.h /var/opt/include/H5api_adpt.h \
  /var/opt/include/H5Apublic.h /var/opt/include/H5Ipublic.h \

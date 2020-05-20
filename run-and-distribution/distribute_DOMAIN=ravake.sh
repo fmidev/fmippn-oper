@@ -11,7 +11,7 @@ cd $INTERPDIR
 MINS=${TIMESTAMP:10:2}
 
 if [ $(($MINS % 30)) == 0 ]; then
-   for EMINS in 60 120 ; do
+   for EMINS in 60 120 180 240 ; do
       EM=`expr $MINS + $EMINS`
       SM=`expr $EM \- 60`
       if [ $EM -lt 100 ]; then EM=0"$EM" ; fi
@@ -43,5 +43,3 @@ if [ $(($MINS % 30)) == 0 ]; then
    cd $DISTRIBDIR
    find . -name '*.tif' -mmin +1500 -exec rm -f {} \;
 fi
-
-exit

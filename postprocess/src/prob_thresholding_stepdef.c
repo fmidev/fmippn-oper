@@ -528,8 +528,8 @@ int main(int argc, char *argv[])
 
              thres=f_acclims[thri][p];
              sprintf(origtime,"%.8sT%.4sZ",obstime,obstime+8);
-             sprintf(fortime_start,"%s%.4s",fielddate[0],fieldtime[0]);
-             sprintf(fortime_end,"%s%.4s",fielddate[1],fieldtime[1]);
+             sprintf(fortime_start,"%sT%.4sZ",fielddate[0],fieldtime[0]);
+             sprintf(fortime_end,"%sT%.4sZ",fielddate[1],fieldtime[1]);
              data=&out_fracarr[thri][0];
 
              if(GEOTIFF_OUT)
@@ -547,9 +547,9 @@ int main(int argc, char *argv[])
 
                 /* Insert metadata as XML-tags */
                 sprintf(metatag,"<GDALMetadata>");
-                sprintf(metatag,"%s<Item name=\"Observation time\" format=\"YYYYmmddHHMM\">%s</Item>\n",metatag,origtime);
-                sprintf(metatag,"%s<Item name=\"Forecast start time\" format=\"YYYYmmddHHMM\">%s</Item>\n",metatag,fortime_start);
-                sprintf(metatag,"%s<Item name=\"Forecast end time\" format=\"YYYYmmddHHMM\">%s</Item>\n",metatag,fortime_end);
+                sprintf(metatag,"%s<Item name=\"Observation time\" format=\"YYYYMMDDThhmmZ\">%s</Item>\n",metatag,obstime);
+                sprintf(metatag,"%s<Item name=\"Forecast start time\" format=\"YYYYMMDDThhmmZ\">%s</Item>\n",metatag,fortime_start);
+                sprintf(metatag,"%s<Item name=\"Forecast end time\" format=\"YYYYMMDDThhmmZ\">%s</Item>\n",metatag,fortime_end);
                 sprintf(metatag,"%s<Item name=\"Time zone\">%s</Item>\n",metatag,timezone_str);
 
                 sprintf(metatag,"%s<Item name=\"Quantity\" unit=\"%%\">Exceedance probability of precipitation accumulation</Item>\n",metatag);

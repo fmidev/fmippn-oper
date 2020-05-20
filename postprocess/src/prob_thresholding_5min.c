@@ -21,14 +21,14 @@
 static double *f_acclims[ACCLIMS],pdiv;
 static int32_t Thresholds[100]={0};
 static int Fields[100]={0},Periods=0,Interval[100],Accmins[100];
-/* static int min5Flags[TSTEPS]={0}, **AccInds[2]; */
-static int *minTstepFlags, **AccInds[2];
+/* static int min5flags[TSTEPS]={0}, **AccInds[2]; */
+static int *min5flags, **AccInds[2];
 /* static int32_t *ravacc[TSTEPS][MEMBERS],acclims[TSTEPS][ACCLIMS],submems; */
 static int32_t ***ravacc,*acclims[ACCLIMS],submems;
 static PJ *projref;
 static projUV SWgeo,SWcart,NEgeo,NEcart,NWgeo,NWcart,SEgeo,SEcart;
 static char *Area;
-static int members,timesteps,Tstep;
+static int members,timesteps;
 
 static int compare(const void *i1, const void *i2) 
            {
@@ -100,7 +100,6 @@ int main(int argc, char *argv[])
     printf("5. Area domain\n");
     printf("6. Member count, including deterministic member if stored\n");
     printf("7. Timesteps of ppn output file\n");
-    printf("8. Timestep of input data in minutes\n");
     return(1);
   }
 
@@ -114,7 +113,6 @@ int main(int argc, char *argv[])
   Area=argv[5];
   members=atoi(argv[6]);
   timesteps=atoi(argv[7]);
-  Tstep=atoi(argv[8]);
 
   {
     char *ptr;
@@ -142,7 +140,7 @@ int main(int argc, char *argv[])
      f_acclims[aI]=calloc(timesteps,sizeof(double));
      acclims[aI]=calloc(timesteps,sizeof(int32_t));
   }
-  minTstepFlags=calloc(timesteps,sizeof(int));
+  min5flags=calloc(timesteps,sizeof(int));
 
   /* Geometry initialization */
   {
@@ -292,8 +290,8 @@ int main(int argc, char *argv[])
              if(!(i+f)) continue;
          
              forsecs=f*intsecs + i*accsecs;
-             forind=forsecs/(Tstep*60); /* forecast index for Tstep-minute interval accumulations */
-             minTstepFlags[forind]=1; /* flag this forecast minute data to be read */
+             forind=forsecs/300; /* forecast index for 5-minute interval accumulations */
+             min5flags[forind]=1; /* flag this forecast minute data to be read */
              AccInds[i][p][f]=forind; /* store the index for each period and field, begin and end */  
           }
        }
@@ -303,9 +301,9 @@ int main(int argc, char *argv[])
      for(i=0;i<timesteps;i++)
      {
        ravacc[i]=calloc(members,sizeof(int32_t *));
-       if(minTstepFlags[i]) /* the same data could be used in several datasets, so read only once */
+       if(min5flags[i]) /* the same data could be used in several datasets, so read only once */
        {
-         formins=i*Tstep;
+         formins=i*5;
          forsecs=formins*60;
          secs=bsecs+forsecs;
          date_from_sec(fortime,secs);
@@ -398,7 +396,7 @@ int main(int argc, char *argv[])
         for(i=0;i<2;i++)
 	{
            Forinds[i]=AccInds[i][p][f];
-           formins=Forinds[i]*Tstep;
+           formins=Forinds[i]*5;
            secs=bsecs+formins*60;
            date_from_sec(fortime,secs);
            sprintf(fielddate[i],"%.8s",fortime);
@@ -528,8 +526,8 @@ int main(int argc, char *argv[])
 
              thres=f_acclims[thri][p];
              sprintf(origtime,"%.8sT%.4sZ",obstime,obstime+8);
-             sprintf(fortime_start,"%s%.4s",fielddate[0],fieldtime[0]);
-             sprintf(fortime_end,"%s%.4s",fielddate[1],fieldtime[1]);
+             sprintf(fortime_start,"%sT%.4sZ",fielddate[0],fieldtime[0]);
+             sprintf(fortime_end,"%sT%.4sZ",fielddate[1],fieldtime[1]);
              data=&out_fracarr[thri][0];
 
              if(GEOTIFF_OUT)
@@ -547,9 +545,9 @@ int main(int argc, char *argv[])
 
                 /* Insert metadata as XML-tags */
                 sprintf(metatag,"<GDALMetadata>");
-                sprintf(metatag,"%s<Item name=\"Observation time\" format=\"YYYYmmddHHMM\">%s</Item>\n",metatag,origtime);
-                sprintf(metatag,"%s<Item name=\"Forecast start time\" format=\"YYYYmmddHHMM\">%s</Item>\n",metatag,fortime_start);
-                sprintf(metatag,"%s<Item name=\"Forecast end time\" format=\"YYYYmmddHHMM\">%s</Item>\n",metatag,fortime_end);
+                sprintf(metatag,"%s<Item name=\"Observation time\" format=\"YYYYMMDDThhmmZ\">%s</Item>\n",metatag,obstime);
+                sprintf(metatag,"%s<Item name=\"Forecast start time\" format=\"YYYYMMDDThhmmZ\">%s</Item>\n",metatag,fortime_start);
+                sprintf(metatag,"%s<Item name=\"Forecast end time\" format=\"YYYYMMDDThhmmZ\">%s</Item>\n",metatag,fortime_end);
                 sprintf(metatag,"%s<Item name=\"Time zone\">%s</Item>\n",metatag,timezone_str);
 
                 sprintf(metatag,"%s<Item name=\"Quantity\" unit=\"%%\">Exceedance probability of precipitation accumulation</Item>\n",metatag);

@@ -43,8 +43,8 @@
         },
 	// Europe area composite, 2km resolution PGM 
 	"europe": {
-            "root_path": "~/fmippn-oper",
-            "path_fmt": "testdata",
+            "root_path": "/dev/shm/ppn",
+            "path_fmt": "europe/obs",
     	    "fn_pattern": "%Y%m%d%H%M_fmi.radar.composite.Europe_EUR_ODYSSEY",
 	    "fn_ext": "pgm",
     	    "importer": "fmi_pgm",

@@ -33,22 +33,31 @@ if [ $HELP ]; then
 fi
 
 export TZ=UTC
+export LOGDAY=`date -u +%d`
+export LOGHOUR=`date -u +%H`
+export RECONFIG=66
 
 export CONDAENV=${CONDAENV:-'fmippn'}
 export DOMAIN=${DOMAIN:-'test'}
-export OPERDIR=$HOME/fmippn-oper
+export OPERDIR=${OPERDIR:-"$HOME/fmippn-oper"}
 export CONFDIR=$OPERDIR/config
 export PPNDIR=$OPERDIR/fmippn
 export DOMAINDIR=$PPNDIR/config
 export RUNDIR=$OPERDIR/run-and-distribution
 export PREPROCDIR=$OPERDIR/preprocess
 export POSTPROCDIR=$OPERDIR/postprocess
-export LOGDIR=$OPERDIR/log
+export LOGDIR=/var/tmp/ppn/log
+ if [ ! -e $LOGDIR ]; then mkdir -p $LOGDIR ; fi
 
 # define common functions
 source $CONFDIR/common_functions.sh
 
-export PPNLOG=$LOGDIR/ppn_DOMAIN=${DOMAIN}.log
+export RUNLOG=$LOGDIR/run_DOMAIN=${DOMAIN}_day=${LOGDAY}.log
+export PPNLOG=$LOGDIR/ppn_DOMAIN=${DOMAIN}_hour=${LOGHOUR}.log
+if [ ! $LIST ]; then
+   ln -sf $RUNLOG $LOGDIR/run_DOMAIN=${DOMAIN}.log
+   ln -sf $PPNLOG $LOGDIR/ppn_DOMAIN=${DOMAIN}.log
+fi
 export POSTPROCLOG=$LOGDIR/postproc_DOMAIN=${DOMAIN}.log
 export PREPROCLOG=$LOGDIR/preproc_DOMAIN=${DOMAIN}.log
 export DISTRIBLOG=$LOGDIR/distrib_DOMAIN=${DOMAIN}.log
@@ -99,7 +108,7 @@ fi
 export INPUT_DATAROOT=`eval echo $DATAROOT`
 export INPUT_DATADIR=`grep -A100 \"$DOMAIN\": $PYSTEPSRC | grep path_fmt | head -1 | cut -d: -f2 | tr -d \"\,' '`
 EXT=`grep -A100 \"$DOMAIN\": $PYSTEPSRC | grep fn_ext | head -1 | cut -d: -f2 | tr -d \"\,' '`
-FILEPATTERN='*_'`grep -A100 \"$DOMAIN\": $PYSTEPSRC | grep fn_pattern | head -1 | cut -d: -f2 | tr -d \"\, | cut -d_ -f2-`.${EXT}
+export FILEPATTERN='*_'`grep -A100 \"$DOMAIN\": $PYSTEPSRC | grep fn_pattern | head -1 | cut -d: -f2 | tr -d \"\, | cut -d_ -f2-`.${EXT}
 export INPUT_PATH=${INPUT_DATAROOT}/${INPUT_DATADIR}
 
 if [ $PROCTIME ]; then
