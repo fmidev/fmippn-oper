@@ -31,6 +31,14 @@ cd $POSTPROCDIR
 
 echo $TIMESTAMP $PROB_THRCFG $INTERPDIR $PROBDIR $DOMAIN $MEMBERS $TIMESTEPS
 bin/prob_thresholding $TIMESTAMP $PROB_THRCFG $INTERPDIR $PROBDIR $DOMAIN $MEMBERS $TIMESTEPS $PROB_TIMESTEP
+
+# Additional prob postprocessing per domain
+if [ $DOMAIN == europe ]; then
+   pushd $PROBDIR
+   ~/SDM/SDM_rename.tcsh $TIMESTAMP
+   popd
+fi
+ 
 find $PROBDIR -name '*.*' -mmin +20 -exec rm -f {} \;
 date
 exit

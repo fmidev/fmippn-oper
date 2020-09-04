@@ -37,6 +37,9 @@ prob_thresholding:	prob_thresholding.o
 reprojection_radardata:	reprojection_radardata.o
 		$(CC) reprojection_radardata.o -o reprojection_radardata $(LDOPTS) $(LIBDIRS) $(GDALLIBS)
 
+extract_motion:	extract_motion.o
+		$(CC) extract_motion.o -o extract_motion $(LDOPTS) $(LIBDIRS) $(LIBS)
+
 install	:
 		@\cp $(EXES) ~/ppn/fmippn-postprocess/bin
 clean	:

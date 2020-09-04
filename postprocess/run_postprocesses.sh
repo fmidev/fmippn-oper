@@ -10,7 +10,7 @@ source $CONFDIR/common_functions.sh
 LOGHOUR=${TIMESTAMP:8:2}
 cd $POSTPROCDIR
 
-for PROCESS in interpolation ensemble_mean prob_analysis visualization ; do
+for PROCESS in interpolation ensemble_mean prob_analysis visualization extras ; do
    RUNSCRIPT=run_${PROCESS}.sh
    DOMAINRUN=RUN_${PROCESS}
    if [ "${!DOMAINRUN}" == "TRUE" ]; then

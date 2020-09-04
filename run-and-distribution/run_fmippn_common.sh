@@ -30,7 +30,7 @@ echo "$BeginStamp : BEGIN=preprocess domain=${DOMAIN} timestamp=$TIMESTAMP" >> $
 cd $PREPROCDIR
 PREPROC=run_preprocess_DOMAIN=${DOMAIN}.sh
 if [ -e $PREPROC ]; then
-#    . ./$PREPROC  >> $PREPROCLOG 2>&1
+#   . ./$PREPROC  >> $PREPROCLOG 2>&1
    if [ $? == $RECONFIG ]; then # preprocess insisted reconfiguration
        source $COMMONCONF  
    fi
@@ -77,6 +77,7 @@ fi
 # Cleanup
 
 find $PPN_OUTPUT_DIR -name 'nc_????????????.h5' -mmin +15 -exec rm -f {} \;
+find $OBSDIR -type f -mtime +1 -exec rm -f {} \;
 conda deactivate
 BeginTime=$fmippn_BeginTime
 get_Runtime

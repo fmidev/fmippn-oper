@@ -2,6 +2,7 @@
 
 set_BeginTime
 echo "$BeginStamp : BEGIN=preprocess domain=${DOMAIN} timestamp=$TIMESTAMP obsfile=$LATEST_OBSFILE"
+# RUN_SODIS=1
 if [ $RUN_SODIS ]; then
 #     scp $LATEST_OBSFILE hhohti@fmippn-1.fmi.fi:/mnt/data/input/$DOMAIN 
      for MACHINE in 1 2 3 ; do
