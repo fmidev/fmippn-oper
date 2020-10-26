@@ -37,6 +37,7 @@ export LOGDAY=`date -u +%d`
 export LOGHOUR=`date -u +%H`
 export RECONFIG=66
 
+export CONDAENV=${CONDAENV:-'fmippn'}
 export DOMAIN=${DOMAIN:-'test'}
 export OPERDIR=${OPERDIR:-"$HOME/fmippn-oper"}
 export CONFDIR=$OPERDIR/config
@@ -46,7 +47,7 @@ export RUNDIR=$OPERDIR/run-and-distribution
 export PREPROCDIR=$OPERDIR/preprocess
 export POSTPROCDIR=$OPERDIR/postprocess
 export LOGDIR=/var/tmp/ppn/log
-if [ ! -e $LOGDIR ]; then mkdir -p $LOGDIR ; fi
+ if [ ! -e $LOGDIR ]; then mkdir -p $LOGDIR ; fi
 
 # define common functions
 source $CONFDIR/common_functions.sh
@@ -62,6 +63,8 @@ export PREPROCLOG=$LOGDIR/preproc_DOMAIN=${DOMAIN}.log
 export DISTRIBLOG=$LOGDIR/distrib_DOMAIN=${DOMAIN}.log
 
 export LD_LIBRARY_PATH=`cat $CONFDIR/ld_library_path`
+export PYTHON=$HOME/miniconda3/envs/fmippn/bin/python
+export START_CONDA=$HOME/miniconda3/etc/profile.d/conda.sh
 
 # pysteps configuration file (data input of all domains are configured here)
 export PYSTEPSRC=$PPNDIR/pystepsrc
@@ -152,6 +155,7 @@ if [ $LIST ]; then
        echo '_________________________________'
        echo -e "Environment\n"
        echo '_________________________________'
+       echo CONDAENV=${CONDAENV}
        echo DOMAIN=${DOMAIN}
        echo OPERDIR=${OPERDIR}
        echo CONFDIR=${CONFDIR}
@@ -170,6 +174,7 @@ if [ $LIST ]; then
        echo DISTRIBLOG=${DISTRIBLOG}
 
        echo PYTHON=${PYTHON}
+       echo START_CONDA=${START_CONDA}
 
        echo PYSTEPSRC=${PYSTEPSRC}
 
@@ -210,4 +215,14 @@ if [ $LIST ]; then
 
        exit 1
 fi
+
+# Starting anaconda/miniconda
+source $START_CONDA
+if [ $? != 0 ]; then
+   echo "No anaconda available!"  
+   exit 5
+fi
+
+# Activate fmippn in conda
+conda activate $CONDAENV
 

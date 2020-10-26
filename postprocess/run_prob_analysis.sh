@@ -35,7 +35,7 @@ bin/prob_thresholding $TIMESTAMP $PROB_THRCFG $INTERPDIR $PROBDIR $DOMAIN $MEMBE
 # Additional prob postprocessing per domain
 if [ $DOMAIN == europe ]; then
    pushd $PROBDIR
-   ~/SDM/SDM_rename.tcsh $TIMESTAMP
+   ~/SDM/SDM_remoterun.tcsh $TIMESTAMP
    popd
 fi
  

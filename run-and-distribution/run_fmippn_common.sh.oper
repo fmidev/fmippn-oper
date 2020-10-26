@@ -16,23 +16,7 @@ fi
 
 export OPERDIR=${OPERDIR:-"$HOME/fmippn-oper"}
 COMMONCONF=${OPERDIR}/config/set_common_config.sh
-source $COMMONCONF  
-
-#activate conda env
-export CONDAENV=${CONDAENV:-'fmippn'}
-export PYTHON=$HOME/miniconda3/envs/fmippn/bin/python
-export START_CONDA=$HOME/miniconda3/etc/profile.d/conda.sh
-
-# Starting anaconda/miniconda
-source $START_CONDA
-if [ $? != 0 ]; then
-   echo "No anaconda available!"  
-   exit 5
-fi
-
-# Activate fmippn in conda
-conda activate $CONDAENV
-
+source $COMMONCONF  #activate conda env in the end
 
 set_BeginTime
 echo "$BeginStamp : BEGIN=fmippn domain=${DOMAIN} timestamp=$TIMESTAMP" >> $RUNLOG
