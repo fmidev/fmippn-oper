@@ -365,13 +365,14 @@ def transform_to_decibels(data, metadata, inverse=False):
 
     return data, metadata
 
-def thresholding(data, metadata, threshold=None, norain_value=None):
+def thresholding(data, metadata, threshold=None, norain_value=None, fill_nan=True):
     if threshold is None:
         threshold = PD["RAIN_THRESHOLD"]
     if norain_value is None:
         norain_value = PD["NORAIN_VALUE"]
 
-    data[~np.isfinite(data)] = norain_value
+    if fill_nan:
+        data[~np.isfinite(data)] = norain_value
     data[data < threshold] = norain_value
 
     metadata["zerovalue"] = norain_value
@@ -394,6 +395,10 @@ def generate(observations, motion_field, nowcaster, nowcast_kwargs, metadata=Non
 
     if PD["FIELD_VALUES"] == "rrate" and metadata["unit"] == "dBZ":
         forecast, meta = dbz_to_rrate(forecast, meta)
+
+    log("debug", f"{metadata['unit']}")
+    norain_value = -32 if metadata["unit"] == "dBZ" else 0
+    forecast, meta = thresholding(forecast, meta, norain_value=norain_value, fill_nan=False)
 
     if meta is None:
         meta = dict()
