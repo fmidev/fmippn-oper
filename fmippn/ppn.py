@@ -190,7 +190,7 @@ def initialise_logging(log_folder='./', log_fname='ppn.log'):
     to log is not enabled."""
     if PD["WRITE_LOG"]:
         full_path = os.path.expanduser(log_folder)
-        ppn_logger.config_logging(os.path.join(full_path, log_fname))
+        ppn_logger.config_logging(os.path.join(full_path, log_fname), level=PD["LOG_LEVEL"])
 
 def log(level, msg, *args, **kwargs):
     """Wrapper for ppn_logger. Function does nothing if writing to log is
