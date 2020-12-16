@@ -8,6 +8,19 @@
     "timestep": 5,
     "importer_kwargs": {"gzipped": false, "qty": "DBZH"}
   },
+
+  "data_options": {},
+
+  "motion_options": {},
+
+  "nowcast_options": {},
+
+  "run_options": {},
+
+  "output_options": {},
+
+  "logging": {},
+
   "DOMAIN": "ravake_hdf5",
   "OPTFLOW_METHOD": "lucaskanade",
   "FFT_METHOD": "pyfftw",
