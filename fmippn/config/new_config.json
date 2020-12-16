@@ -1,4 +1,13 @@
 {
+  "data_source": {
+    "root_path": "./input",
+    "path_fmt": "",
+    "fn_pattern": "%Y%m%d%H%M_radar.rack.comp_CONF=FMIPPN,ANDRE",
+    "fn_ext": "h5",
+    "importer": "opera_hdf5",
+    "timestep": 5,
+    "importer_kwargs": {"gzipped": false, "qty": "DBZH"}
+  },
   "DOMAIN": "fmi",
   "OPTFLOW_METHOD": "lucaskanade",
   "FFT_METHOD": "pyfftw",

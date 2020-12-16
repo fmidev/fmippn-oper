@@ -261,7 +261,10 @@ def generate_pysteps_setup():
     """Generate `datasource` and `nowcast_kwargs` objects that are suitable
     for using in pysteps nowcasting methods."""
     # Paths, importers etc.
-    datasource = pystepsrc["data_sources"][PD["DOMAIN"]]
+    datasource = PD.get("data_source")
+    # NOTE: This is for backwards compability, can be removed at some point
+    if datasource is None:
+        datasource = pystepsrc["data_sources"][PD["DOMAIN"]]
     datasource["root_path"] = os.path.expanduser(datasource["root_path"])
 
     # kwargs for nowcasting method
