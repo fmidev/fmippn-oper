@@ -1,0 +1,50 @@
+{
+  "DOMAIN": "fmi",
+  "OPTFLOW_METHOD": "lucaskanade",
+  "FFT_METHOD": "pyfftw",
+  "GENERATE_DETERMINISTIC": true,
+  "GENERATE_ENSEMBLE": true,
+  "GENERATE_UNPERTURBED": false,
+  "REGENERATE_PERTURBED_MOTION": false,
+  "VALUE_DOMAIN": "dbz",
+  "ZR_A": 223.0,
+  "ZR_B": 1.53,
+  "NUM_PREV_OBSERVATIONS": 3,
+  "NOWCAST_TIMESTEP": 5,
+  "MAX_LEADTIME": 120,
+  "NUM_TIMESTEPS": null,
+  "ENSEMBLE_SIZE": 24,
+  "NUM_CASCADES": 8,
+  "NUM_WORKERS": 6,
+  "RAIN_THRESHOLD": 6.5,
+  "NORAIN_VALUE": 1.5,
+  "KMPERPIXEL": 1.0,
+  "SEED": null,
+  "CALCULATION_DOMAIN": "spectral",
+  "VEL_PERT_METHOD": "bps",
+  "VEL_PERT_KWARGS": {
+    "p_par": [
+      2.20837526,
+      0.33887032,
+      -2.48995355
+    ],
+    "p_perp": [
+      2.21722634,
+      0.32359621,
+      -2.57402761
+    ]
+  },
+  "FIELD_VALUES": "dbz",
+  "OUTPUT_PATH": null,
+  "OUTPUT_TIME_FORMAT": "%Y-%m-%d %H:%M:%S",
+  "STORE_ENSEMBLE": true,
+  "STORE_UNPERTURBED": true,
+  "STORE_DETERMINISTIC": true,
+  "STORE_MOTION": true,
+  "STORE_PERTURBED_MOTION": true,
+  "SCALER": 100,
+  "SCALE_ZERO": "auto",
+  "WRITE_LOG": false,
+  "LOG_LEVEL": 20,
+  "LOG_FOLDER": "../logs"
+}
