@@ -41,6 +41,26 @@
             "timestep": 5,
             "importer_kwargs": {"gzipped": false}
         },
+	// RAVAKE_TEST area composite, 1km resolution PGM
+        "ravake_test": {
+            "root_path": "/dev/shm/ppn/ravake_test",
+            "path_fmt": "input",
+            "fn_pattern": "%Y%m%d%H%M_fmi.radar.composite.lowest_FIN_RAVAKE",
+            "fn_ext": "pgm",
+            "importer": "fmi_pgm",
+            "timestep": 5,
+            "importer_kwargs": {"gzipped": false}
+        },
+	// Scandinavia 1km area composite, 1km resolution PGM
+        "skandi1km": {
+            "root_path": "/dev/shm/ppn/skandi1km",
+            "path_fmt": "input",
+            "fn_pattern": "%Y%m%d%H%M_skandi1km",
+            "fn_ext": "pgm",
+            "importer": "fmi_pgm",
+            "timestep": 5,
+            "importer_kwargs": {"gzipped": false}
+        },
 	// Europe area composite, 2km resolution PGM 
 	"europe": {
             "root_path": "/dev/shm/ppn",

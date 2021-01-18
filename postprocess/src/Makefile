@@ -40,6 +40,9 @@ reprojection_radardata:	reprojection_radardata.o
 extract_motion:	extract_motion.o
 		$(CC) extract_motion.o -o extract_motion $(LDOPTS) $(LIBDIRS) $(LIBS)
 
+hourmask:	hourmask.o
+		$(CC) hourmask.o -o hourmask $(LDOPTS)
+
 install	:
 		@\cp $(EXES) ~/ppn/fmippn-postprocess/bin
 clean	:

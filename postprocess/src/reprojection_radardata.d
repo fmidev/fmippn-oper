@@ -18,8 +18,8 @@ reprojection_radardata.o: reprojection_radardata.c \
  /var/opt/include/H5FDdirect.h /var/opt/include/hdf5_hl.h \
  /var/opt/include/H5DSpublic.h /var/opt/include/H5LTpublic.h \
  /var/opt/include/H5IMpublic.h /var/opt/include/H5TBpublic.h \
- /var/opt/include/H5PTpublic.h /var/opt/include/projects.h \
- /var/opt/include/proj_api.h /var/opt/include/gdal.h \
+ /var/opt/include/H5PTpublic.h include_local/projects.h \
+ include_local/proj_api.h /var/opt/include/gdal.h \
  /var/opt/include/gdal_version.h /var/opt/include/cpl_port.h \
  /var/opt/include/cpl_config.h /var/opt/include/cpl_error.h \
  /var/opt/include/cpl_string.h /var/opt/include/cpl_vsi.h \

@@ -172,6 +172,7 @@ static OwnOption optionlist[] =
      {1, "polarzoom",          "Intermediate zoom factor when converting polar data to cartesian" },
      {1, "polarrange",         "Maximum range in kilometers from radar when converting polar data to cartesian" },
      {1, "EPSG",               "EPSG code for output projection" },
+     {1, "NoDataValue",        "NoData value" },
      {1, "TIFFcompression",    "Compression method for GeoTIFF output file. Default is DEFLATE." },
      {1, "Zlevel",             "Compression level for GeoTIFF output file, from 0 (no) to 9 (best, slowest). Default is 6." },
      {1, "tiling",             "Sets GeoTIFF tiling. Default is 1 (YES). If tiling>1, the X and Y block dimensions are set to the value." },
@@ -241,6 +242,7 @@ double inrange[2]={0},
        inNodata,
        inGain,
        inOffset,
+       NoDataValue,
        ZRA=200.0,ZRB=1.6,ZRB10, /* Default (Marshall-Palmer) A and B in Z=AR^B */
        ZSA=0.0,ZSB=0.0,ZSB10, /* A and B in Z=AS^B in snow */
        ZRC, /* constant for R(Z) conversion,  -log10(ZRA)/ZRB */
@@ -290,6 +292,7 @@ int    indim[2]={0},
        Acchours=0,
        Forecast=0,
        RetVal=0,
+       NODATAVALUE=0,
        FLIP_OUTPUT_DATA=0,
        FILL_NODATA=0,
        INSERT_METAFILE=0,
@@ -2143,6 +2146,7 @@ int main(int argc, char *argv[])
      GDALRasterIO( hBand, GF_Write, 0, 0, outdim[XD], outdim[YD], 
                   datarr, outdim[XD], outdim[YD], GDT_datatype, 0, 0 );    
 
+     if(NODATAVALUE) GDALSetRasterNoDataValue(hBand, NoDataValue);
      GDALClose( hDstDS );
      CSLDestroy( papszOptions );
 
@@ -3046,6 +3050,13 @@ int option_solver(struct option option, char *optarg)
           if(!strcmp(option.name,"EPSG"))
             {
  	       EPSG=atoi(optarg);
+               return(1);
+            }
+
+          if(!strcmp(option.name,"NoDataValue"))
+            {
+ 	       NoDataValue=atof(optarg);
+               NODATAVALUE=1;
                return(1);
             }
 

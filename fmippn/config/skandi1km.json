@@ -1,0 +1,36 @@
+{
+  "DOMAIN": "skandi1km",
+  "NOWCAST_TIMESTEP": 5,
+  "MAX_LEADTIME": 30,
+  "ENSEMBLE_SIZE": 5,
+  "NUM_WORKERS": 6,
+  "GENERATE_UNPERTURBED": false,
+  "REGENERATE_PERTURBED_MOTION": false,
+  "GENERATE_DETERMINISTIC": true,
+  "OUTPUT_PATH": "/dev/shm/ppn/skandi1km",
+  "STORE_MOTION": true,
+  "STORE_ENSEMBLE": true,
+  "STORE_DETERMINISTIC": true,
+  "SEED": 20190823,
+  "FIELD_VALUES": "dbz",
+  "VALUE_DOMAIN": "dbz",
+  "SCALER": 10,
+  "WRITE_LOG": true,
+  "LOG_LEVEL": 10,
+  "LOG_FOLDER": "/var/tmp/log",
+  "RAIN_THRESHOLD": -10,
+  "NORAIN_VALUE": -15,
+  "SCALE_ZERO": -32,
+  "VEL_PERT_KWARGS": {
+    "p_par": [
+      0,
+      0,
+      0
+    ],
+    "p_perp": [
+      0,
+      0,
+      0
+    ]
+  }
+}

@@ -58,18 +58,15 @@ if [ $(($MINS % 60)) == 0 ]; then
       # Adding hourly radar coverage mask (see $POSTPROCDIR/run_interpolation)
       ACCPGM_MASKED="$TIMES"_acc1h_suomi_masked.pgm
       composite -compose plus mask1h_"$TIMES".pgm $ACCPGM $ACCPGM_TMP
-      $RUNDIR/bin/replace_grey $ACCPGM_TMP $ACCPGM_MASKED 19270 65000 0
+      $RUNDIR/bin/replace_grey $ACCPGM_TMP $ACCPGM_MASKED 19277 0
 
       $POSTPROCDIR/bin/reprojection_radardata --cfgfile=$CONFDIR/RAVAKE_3067.cfg --NoDataValue=65535 --obstime=$ENDTIME $ACCPGM_MASKED $ACCTIF $ACCH5
       
       if [ -e $ACCTIF ]; then
          echo "Copying $ACCTIF"
-#         cp $ACCTIF $DISTRIB_NFS 
+         cp $ACCTIF $DISTRIB_NFS 
       fi
    done
-
-   # Adds phase fields and copies corrected accumululations 
-   ~/phase/bin/potprec_blur_ravake.tcsh $TIMESTAMP $DISTRIB_NFS
 
    cd $DISTRIBDIR
    find . -name '*.tif' -mmin +1500 -exec rm -f {} \;

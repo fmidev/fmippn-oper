@@ -1,0 +1,13 @@
+P5
+# obstime 202001291030
+# param CorrectedReflectivity
+# metersperpixel_x 1000.0
+# metersperpixel_y 1000.0
+# projection radar {
+# type stereographic
+# centrallongitude 25.000000
+# centrallatitude 90.0
+# truelatitude 60.000000
+# bottomleft 50 4.00119
+# topright 72.9923 42.9915
+# }
