@@ -19,7 +19,12 @@
 
   "output_options": {},
 
-  "logging": {},
+  "logging": {
+    "write_log": true,
+    "log_level": 10,
+    "log_folder": "./output/logs",
+    "log_fname_template": "ppn-%Y%m%d.log"
+  },
 
   "DOMAIN": "ravake_hdf5",
   "OPTFLOW_METHOD": "lucaskanade",
