@@ -13,7 +13,33 @@
 
   "motion_options": {},
 
-  "nowcast_options": {},
+  "nowcast_options": {
+    "n_ens_members": 5,
+    "n_cascade_levels": 8,
+    "timestep": 5,
+    "domain": "spectral",
+    "kmperpixel": 1.0,
+    "num_workers": 10,
+    "fft_method": "pyfftw",
+    "vel_pert_method": "bps",
+    "vel_pert_kwargs": {
+      "p_par": [
+        2.20837526,
+        0.33887032,
+        -2.48995355
+      ],
+      "p_perp": [
+        2.21722634,
+        0.32359621,
+        -2.57402761
+      ]
+    },
+    "seed": 1,
+    "extrap_method": "semilagrangian",
+    "noise_method": "nonparametric",
+    "ar_order": 2,
+    "mask_method": "incremental"
+  },
 
   "run_options": {},
 
@@ -28,7 +54,7 @@
 
   "DOMAIN": "ravake_hdf5",
   "OPTFLOW_METHOD": "lucaskanade",
-  "FFT_METHOD": "pyfftw",
+
   "GENERATE_DETERMINISTIC": true,
   "GENERATE_ENSEMBLE": true,
   "GENERATE_UNPERTURBED": false,
@@ -37,30 +63,13 @@
   "ZR_A": 223.0,
   "ZR_B": 1.53,
   "NUM_PREV_OBSERVATIONS": 3,
-  "NOWCAST_TIMESTEP": 5,
+
   "MAX_LEADTIME": 60,
   "NUM_TIMESTEPS": null,
-  "ENSEMBLE_SIZE": 5,
-  "NUM_CASCADES": 8,
-  "NUM_WORKERS": 10,
+
   "RAIN_THRESHOLD": -10,
   "NORAIN_VALUE": -15,
-  "KMPERPIXEL": 1.0,
-  "SEED": 1,
-  "CALCULATION_DOMAIN": "spectral",
-  "VEL_PERT_METHOD": "bps",
-  "VEL_PERT_KWARGS": {
-    "p_par": [
-      2.20837526,
-      0.33887032,
-      -2.48995355
-    ],
-    "p_perp": [
-      2.21722634,
-      0.32359621,
-      -2.57402761
-    ]
-  },
+
   "FIELD_VALUES": "dbz",
   "OUTPUT_PATH": "./output",
   "OUTPUT_TIME_FORMAT": "%Y-%m-%d %H:%M:%S",

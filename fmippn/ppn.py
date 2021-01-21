@@ -153,6 +153,20 @@ def run(timestamp=None, config=None, **kwargs):
         "time_at_end": time_at_end,
     }
 
+    # FIXME: temporary hack to prevent crashes during saving the output
+    # Remove these when the write_to_file function has been rewritten
+    PD["ENSEMBLE_SIZE"] = PD.get("nowcast_options").get("n_ens_members")
+    del PD["data_source"]
+    del PD["data_options"]
+    del PD["motion_options"]
+    del PD["nowcast_options"]
+    del PD["run_options"]
+    del PD["output_options"]
+    del PD["logging"]
+    if PD["SEED"] is None:  # Cannot write None to HDF5
+        del PD["SEED"]
+        del store_meta["seed"]
+
     # WRITE OUTPUT TO A FILE
     write_to_file(startdate, gen_output, nc_fname, store_meta)
     log("info", "Finished writing output to a file.")
@@ -242,22 +256,7 @@ def generate_pysteps_setup():
     datasource["root_path"] = os.path.expanduser(datasource["root_path"])
 
     # kwargs for nowcasting method
-    nowcast_kwargs = {
-        "n_ens_members": PD["ENSEMBLE_SIZE"],
-        "n_cascade_levels": PD["NUM_CASCADES"],
-        "kmperpixel": PD["KMPERPIXEL"],
-        "timestep": PD["NOWCAST_TIMESTEP"],
-        "extrap_method": "semilagrangian",
-        "noise_method": "nonparametric",
-        "ar_order": 2,
-        "mask_method": "incremental",
-        "num_workers": PD["NUM_WORKERS"],
-        "fft_method": PD["FFT_METHOD"],
-        "vel_pert_method": PD["VEL_PERT_METHOD"],
-        "vel_pert_kwargs": PD["VEL_PERT_KWARGS"],
-        "seed": PD["SEED"],
-        "domain": PD.get("CALCULATION_DOMAIN", "spatial")
-    }
+    nowcast_kwargs = PD.get("nowcast_options")
 
     # This threshold is used in masking and probability masking
     # rrate units need to be transformed to decibel, so that comparisons can be done
