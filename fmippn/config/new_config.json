@@ -14,6 +14,7 @@
   "motion_options": {},
 
   "nowcast_options": {
+    "timesteps": 12,
     "n_ens_members": 5,
     "n_cascade_levels": 8,
     "timestep": 5,

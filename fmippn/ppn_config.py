@@ -114,6 +114,18 @@ defaults = {
     "ZR_A": 223.,
     "ZR_B": 1.53,
     # Nowcasting parameters
+    "nowcast_options": {
+        "timesteps": 12,  # int = number of timesteps, list of floats = forecast for these lead times
+        # Default to the nowcast method defaults
+        # n_ens_members = 24,
+        # n_cascade_levels = 6,
+        "fft_method": "pyfftw",
+        "vel_pert_kwargs": {
+            # lucaskanade/fmi values given in pysteps.nowcasts.steps.forecast() method documentation
+            "p_par": [2.20837526, 0.33887032, -2.48995355],
+            "p_perp": [2.21722634, 0.32359621, -2.57402761],
+        },
+    },
     "NUM_PREV_OBSERVATIONS": 3,
     "NOWCAST_TIMESTEP": 5,
     "MAX_LEADTIME": 120,
