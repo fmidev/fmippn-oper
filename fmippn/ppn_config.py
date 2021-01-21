@@ -21,6 +21,33 @@ import logging
 import json
 import os
 
+# Overriding defaults with configuration from file
+def get_config(override_name=None):
+    """Get configuration parameters from ppn_config.py.
+
+    If override_name is given, function updates non-default values."""
+    params = get_params("defaults")
+
+    if override_name is not None:
+        override_params = get_params(override_name)
+        if not override_params:
+            no_config_found_msg = ("Couldn't find overriding parameters in "
+                                   "ppn_config. Key '{}' was unrecognised.").format(override_name)
+            raise ValueError(no_config_found_msg)
+        params.update(override_params)
+
+    # This parameter might not exists in configuration
+    if params.get("NUM_TIMESTEPS", None) is None:
+        params.update(NUM_TIMESTEPS=int(params["MAX_LEADTIME"] / params["NOWCAST_TIMESTEP"]))
+
+    # Default to /tmp. Change default value in the future?
+    if params.get("OUTPUT_PATH", None) is None:
+        params.update(OUTPUT_PATH="/tmp")
+
+    params.update(OUTPUT_PATH=os.path.expanduser(params["OUTPUT_PATH"]))
+
+    return params
+
 def get_params(name):
     """Utility function for easier access to wanted parametrizations.
 

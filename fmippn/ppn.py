@@ -37,7 +37,7 @@ def run(timestamp=None, config=None, **kwargs):
     """
     nc_fname = None
 
-    PD.update(get_config(config))
+    PD.update(ppn_config.get_config(config))
 
     initialise_logging(log_folder=PD.get("LOG_FOLDER", "./"),
                        log_fname="ppn-{:%Y%m%d}.log".format(dt.datetime.utcnow()))
@@ -158,32 +158,6 @@ def run(timestamp=None, config=None, **kwargs):
     log("info", "Finished writing output to a file.")
     log("info", "Run complete. Exiting.")
 
-# Overriding defaults with configuration from file
-def get_config(override_name=None):
-    """Get configuration parameters from ppn_config.py.
-
-    If override_name is given, function updates non-default values."""
-    params = ppn_config.get_params("defaults")
-
-    if override_name is not None:
-        override_params = ppn_config.get_params(override_name)
-        if not override_params:
-            no_config_found_msg = ("Couldn't find overriding parameters in "
-                                   "ppn_config. Key '{}' was unrecognised.").format(override_name)
-            raise ValueError(no_config_found_msg)
-        params.update(override_params)
-
-    # This parameter might not exists in configuration
-    if params.get("NUM_TIMESTEPS", None) is None:
-        params.update(NUM_TIMESTEPS=int(params["MAX_LEADTIME"] / params["NOWCAST_TIMESTEP"]))
-
-    # Default to pysteps settings. Change default value in the future?
-    if params.get("OUTPUT_PATH", None) is None:
-        params.update(OUTPUT_PATH=pystepsrc["outputs"]["path_outputs"])
-
-    params.update(OUTPUT_PATH=os.path.expanduser(params["OUTPUT_PATH"]))
-
-    return params
 
 def initialise_logging(log_folder='./', log_fname='ppn.log'):
     """Wrapper for ppn_logger.config_logging() method. Does nothing if writing
