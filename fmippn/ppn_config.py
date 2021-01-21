@@ -26,7 +26,7 @@ def get_config(override_name=None):
     """Get configuration parameters from ppn_config.py.
 
     If override_name is given, function updates non-default values."""
-    params = get_params("defaults")
+    params = defaults.copy()
 
     if override_name is not None:
         override_params = get_params(override_name)
@@ -65,22 +65,19 @@ def get_params(name):
     Return dictionary of parameters for overriding defaults. Non-existing
     names will return an empty dictionary.
     """
-    if name == "defaults":
-        params = defaults
+    name = os.path.splitext(name)[0] + ".json"
+    if os.path.exists(name):
+        cfname = name
     else:
-        name = os.path.splitext(name)[0] + ".json"
-        if os.path.exists(name):
-            cfname = name
-        else:
-            cfpath = os.path.realpath(__file__)
-            cfpath = os.path.split(cfpath)[0]
-            cfname = os.path.join(cfpath, "config/", name)
-        print(f"Using PPN configuration from {cfname}")
-        try:
-            with open(cfname, "r") as f:
-                params = json.load(f)
-        except FileNotFoundError:
-            params = dict()
+        cfpath = os.path.realpath(__file__)
+        cfpath = os.path.split(cfpath)[0]
+        cfname = os.path.join(cfpath, "config/", name)
+    print(f"Using PPN configuration from {cfname}")
+    try:
+        with open(cfname, "r") as f:
+            params = json.load(f)
+    except FileNotFoundError:
+        params = dict()
 
     return params
 
