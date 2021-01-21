@@ -1,7 +1,7 @@
 """Utility functions for FMI-PPN"""
 import datetime as dt
-
 import numpy as np
+import h5py
 
 
 def utcnow_floored(increment=5):
@@ -64,3 +64,34 @@ def prepare_fct_for_saving(fct, scaler, scale_zero, store_dtype, store_nodata_va
     fct_scaled[nodata_mask] = store_nodata_value
     fct_scaled = fct_scaled.astype(store_dtype)
     return fct_scaled
+
+
+def copy_odim_attributes(infile,outf):
+    """Copy attribute groups /what, /where and /how from
+    input ODIM HDF5 file to output ODIM HDF5 file as they are.
+    
+    Keyword arguments:
+    infile -- ODIM HDF5 input composite filename
+    outf -- FMI-PPN output HDF5 file object
+    """
+
+    inf=h5py.File(infile, 'r')
+
+    #Copy attribute groups /what, /where and /how
+    what=outf.create_group("what")
+    for key, val in inf["what"].attrs.items():
+         what.attrs[key] = val
+
+    where=outf.create_group("where")
+    for key, val in inf["where"].attrs.items():
+        where.attrs[key] = val
+
+    how=outf.create_group("how")
+    for key, val in inf["how"].attrs.items():
+        how.attrs[key] = val
+        
+    inf.close()
+
+
+
+    

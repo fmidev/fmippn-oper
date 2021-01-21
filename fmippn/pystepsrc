@@ -70,7 +70,26 @@
     	    "importer": "fmi_pgm",
     	    "timestep": 15,
             "importer_kwargs": {"gzipped": false}
-	}	    
+	},
+	"ravake_hdf5": {
+            "root_path": "/home/perttula/ppn_input",
+            "path_fmt": "",
+            "fn_pattern": "%Y%m%d%H%M_radar.rack.comp_CONF=FMIPPN,ANDRE",
+            "fn_ext": "h5",
+            "importer": "opera_hdf5",
+            "timestep": 5,
+            "importer_kwargs": {"gzipped": false, "qty": "DBZH"}
+        },
+	"europe_hdf5": {
+            "root_path": "/input",
+            "path_fmt": "",
+    	    "fn_pattern": "T_PABH21_C_EUOC_%Y%m%d%H%M00",
+	    "fn_ext": "hdf",
+    	    "importer": "opera_hdf5",
+    	    "timestep": 15,
+            "importer_kwargs": {"gzipped": false, "qty": "DBZH"}
+	}	 	    
 	// END
     }
+
 }	
