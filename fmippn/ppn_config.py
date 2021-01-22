@@ -162,7 +162,7 @@ defaults = {
     "data_source": {
     },
 
-    "logging_options": {
+    "logging": {
     },
 
     "motion_options": {
