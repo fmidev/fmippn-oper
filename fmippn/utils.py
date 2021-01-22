@@ -99,6 +99,10 @@ def store_odim_dset_attrs(dset_grp, dset_index, startdate, timestep, metadata):
 
     Keyword arguments:
     dset_grp -- dataset HDF5 group object
+    dset_index -- dataset number (dataset1, dataset2 etc), indicates number of timestep
+    startdate -- nowcast analysis time (datetime object)
+    timestep -- time difference between nowcast fields (int) 
+    metadata -- array containing metadata
     """
 
     #Calculate valid time for each step
@@ -121,4 +125,6 @@ def store_odim_dset_attrs(dset_grp, dset_index, startdate, timestep, metadata):
     dset_what_grp.attrs["starttime"] = int(dt.datetime.strftime(valid_time, "%H%M%S"))
     dset_what_grp.attrs["endtime"] = int(dt.datetime.strftime(valid_time, "%H%M%S"))
     dset_what_grp.attrs["quantity"] = quantity
+    
+
     

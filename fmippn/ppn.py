@@ -158,8 +158,10 @@ def run(timestamp=None, config=None, **kwargs):
 
     # Test writing ODIM output
     nc_det_fname=None
+    nc_ens_fname=None
     write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_fname, store_meta)
-
+    write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname, store_meta)
+    
     log("info", "Finished writing output to a file.")
     log("info", "Run complete. Exiting.")
 
@@ -622,7 +624,7 @@ def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_f
     deterministic, det_scale_meta = prepare_data_for_writing(deterministic)
 
     #Write deterministic forecast in ODIM format
-    if deterministic is not None and PD["STORE_ENSEMBLE"]:
+    if deterministic is not None and PD["STORE_DETERMINISTIC"]:
         with h5py.File(os.path.join(PD["OUTPUT_PATH"], nc_det_fname), 'w') as outf:
 
             #Copy attribute groups /what, /where and /how from input to output
@@ -642,6 +644,75 @@ def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_f
 
                 
     return None
+
+
+
+def write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname=None, metadata=None):
+    """Write ensemble output in ODIM HDF5 format..
+
+    Input:
+        startdate -- nowcast analysis time (datetime object)
+        gen_output -- dictionary containing generated nowcasts
+        nc_ens_fname -- filename for output ensemble HDF5 file
+        metadata -- dictionary containing nowcast metadata (optional)
+    """
+
+    if metadata is None:
+        metadata = dict()
+
+    ensemble_forecast = gen_output.get("ensemble_forecast", None)
+
+    #Input filename
+    infile = pysteps.io.find_by_date(startdate,
+                                           datasource["root_path"],
+                                           datasource["path_fmt"],
+                                           datasource["fn_pattern"],
+                                           datasource["fn_ext"],
+                                           datasource["timestep"],
+                                           num_prev_files=0)[0][0]
+    print("infile",infile)
+
+    #Output filename
+    if nc_ens_fname is None:
+        nc_ens_fname = "nc_ens_{:%Y%m%d%H%M}.h5".format(startdate)
+    
+    if metadata is None:
+        metadata = dict()
+
+    if all((dataset is None for dataset in gen_output.values())):
+        print("Nothing to store")
+        log("warning", "Nothing to store into .h5 file. Skipping.")
+        return None
+
+    ensemble_forecast, ens_scale_meta = prepare_data_for_writing(ensemble_forecast)
+    
+    #Write ensemble forecast in ODIM format
+    if ensemble_forecast is not None and PD["STORE_ENSEMBLE"]:
+        with h5py.File(os.path.join(PD["OUTPUT_PATH"], nc_ens_fname), 'w') as outf:
+
+            #Copy attribute groups /what, /where and /how from input to output
+            utils.copy_odim_attributes(infile,outf)
+            
+	    # Write timeseries
+            for index in range(ensemble_forecast.shape[1]):
+                timestep=PD["NOWCAST_TIMESTEP"]
+                dset_grp=outf.create_group(f"/dataset{index+1}")
+
+                #Add attributes to each dataset
+                utils.store_odim_dset_attrs(dset_grp, index, startdate, timestep, metadata)
+                
+                # Store ensemble members
+                for eidx in range(PD["ENSEMBLE_SIZE"]):
+                    
+                    #Store data
+                    ts_point = ensemble_forecast[eidx, :, :, :]
+                    dset_grp.create_dataset(f"data{eidx+1}/data",data=ts_point)
+
+                
+    return None
+
+
+
 
 
 if __name__ == '__main__':
