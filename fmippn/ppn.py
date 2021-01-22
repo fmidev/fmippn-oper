@@ -285,7 +285,7 @@ def read_observations(startdate, datasource, importer):
     except OSError:
         # Re-raise so traceback is shown in stdout and program stops
         log("error", "OSError was raised, see output for traceback")
-        raise
+        raise OSError("Failed to read input data")
 
     # PGM files contain dBZ values
     obs, _, metadata = pysteps.io.readers.read_timeseries(filelist,
