@@ -158,7 +158,7 @@ def run(timestamp=None, config=None, **kwargs):
 
     # Test writing ODIM output
     nc_det_fname=None
-    write_deterministic_to_file(startdate, datasource, gen_output, nc_det_fname, store_meta)
+    write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_fname, store_meta)
 
     log("info", "Finished writing output to a file.")
     log("info", "Run complete. Exiting.")
@@ -582,13 +582,13 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
     return None
 
 
-def write_deterministic_to_file(startdate, datasource, gen_output, nc_det_fname=None, metadata=None):
+def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_fname=None, metadata=None):
     """Write deterministic output in ODIM HDF5 format..
 
     Input:
         startdate -- nowcast analysis time (datetime object)
         gen_output -- dictionary containing generated nowcasts
-        nc_fname -- filename for output HDF5 file
+        nc_det_fname -- filename for output deterministic HDF5 file
         metadata -- dictionary containing nowcast metadata (optional)
     """
 
@@ -622,7 +622,7 @@ def write_deterministic_to_file(startdate, datasource, gen_output, nc_det_fname=
     deterministic, det_scale_meta = prepare_data_for_writing(deterministic)
 
     #Write deterministic forecast in ODIM format
-    if deterministic is not None and PD["STORE_DETERMINISTIC"]:
+    if deterministic is not None and PD["STORE_ENSEMBLE"]:
         with h5py.File(os.path.join(PD["OUTPUT_PATH"], nc_det_fname), 'w') as outf:
 
             #Copy attribute groups /what, /where and /how from input to output
@@ -630,34 +630,18 @@ def write_deterministic_to_file(startdate, datasource, gen_output, nc_det_fname=
             
 	    # Write timeseries
             for index in range(deterministic.shape[0]):
-                dset_grp=f"/dataset{index+1}"
-                dset=dset_grp + "/data1/data"
-                ts_point = deterministic[index, :, :]              
-                outf.create_group(dset_grp)
-                outf.create_dataset(dset,data=ts_point)
-
-                #Calculate valid time for each step
                 timestep=PD["NOWCAST_TIMESTEP"]
-                valid_time = startdate + (index + 1) * dt.timedelta(minutes=timestep)
+                dset_grp=outf.create_group(f"/dataset{index+1}")
 
-                #Change quantity to ODIM format
-                quantity=metadata.get("unit", "Unknown")
-                if quantity == "dBZ":
-                    quantity="DBZH"
-                elif quantity == "rrate":
-                    quantity="RATE"
-                
                 #Add attributes to each dataset
-                dset_how_grp=outf.create_group(dset_grp+"/how")
-                dset_how_grp.attrs["simulated"]=True
+                utils.store_odim_dset_attrs(dset_grp, index, startdate, timestep, metadata)
 
-                dset_what_grp=outf.create_group(dset_grp+"/what")
-                dset_what_grp.attrs["starttime"] = int(dt.datetime.strftime(valid_time, "%H%M%S"))
-                dset_what_grp.attrs["endtime"] = int(dt.datetime.strftime(valid_time, "%H%M%S"))
-                dset_what_grp.attrs["quantity"] = quantity
-        
+                #Store data
+                ts_point = deterministic[index, :, :]
+                outf.create_dataset(f"/dataset{index+1}/data1/data",data=ts_point)
+
+                
     return None
-
 
 
 if __name__ == '__main__':

@@ -93,5 +93,32 @@ def copy_odim_attributes(infile,outf):
     inf.close()
 
 
+def store_odim_dset_attrs(dset_grp, dset_index, startdate, timestep, metadata):    
+    """Store ODIM attributes to datasets. Each dataset
+    represents a different timestep.
 
+    Keyword arguments:
+    dset_grp -- dataset HDF5 group object
+    """
+
+    #Calculate valid time for each step
+    valid_time = startdate + (dset_index + 1) * dt.timedelta(minutes=timestep)
+
+    #Change quantity to ODIM format                                                                                                          
+    quantity=metadata.get("unit", "Unknown")
+    if quantity == "dBZ":
+        quantity="DBZH"
+    elif quantity == "rrate":
+        quantity="RATE"
+        
+    #Add attributes to each dataset                                                                                                          
+    dset_how_grp=dset_grp.create_group("how")
+    dset_how_grp.attrs["simulated"]=True
+    
+    dset_what_grp=dset_grp.create_group("what")
+    dset_what_grp.attrs["startdate"] = int(dt.datetime.strftime(valid_time, "%Y%m%d"))
+    dset_what_grp.attrs["enddate"] = int(dt.datetime.strftime(valid_time, "%Y%m%d"))
+    dset_what_grp.attrs["starttime"] = int(dt.datetime.strftime(valid_time, "%H%M%S"))
+    dset_what_grp.attrs["endtime"] = int(dt.datetime.strftime(valid_time, "%H%M%S"))
+    dset_what_grp.attrs["quantity"] = quantity
     
