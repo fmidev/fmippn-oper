@@ -99,13 +99,6 @@ def run(timestamp=None, config=None, **kwargs):
         ensemble_forecast = None
         ens_meta = dict()
 
-    if PD["GENERATE_UNPERTURBED"]:
-        unperturbed, unpert_meta = generate_unperturbed(observations, motion_field, nowcaster,
-                                                        nowcast_kwargs, metadata=obs_metadata)
-    else:
-        unperturbed = None
-        unpert_meta = dict()
-
     if PD["GENERATE_DETERMINISTIC"]:
         deterministic, det_meta = generate_deterministic(observations[-1],
                                                          motion_field,
@@ -121,7 +114,6 @@ def run(timestamp=None, config=None, **kwargs):
 
     gen_output = {
         "motion_field": motion_field,
-        "unperturbed": unperturbed,
         "ensemble_motion": ensemble_motion,
         "ensemble_forecast": ensemble_forecast,
         "deterministic": deterministic,
@@ -132,8 +124,6 @@ def run(timestamp=None, config=None, **kwargs):
         unit = ens_meta["unit"]
     elif "unit" in det_meta:
         unit = det_meta["unit"]
-    elif "unit" in unpert_meta:
-        unit = unpert_meta["unit"]
     else:
         unit = "Unknown"
     store_meta = {
@@ -380,22 +370,6 @@ def generate(observations, motion_field, nowcaster, nowcast_kwargs, metadata=Non
 
     if meta is None:
         meta = dict()
-    return forecast, meta
-
-def generate_unperturbed(observations, motion_field, nowcaster, nowcast_kwargs,
-                         metadata=None):
-    """Generate a steps nowcast without perturbations using pysteps nowcaster."""
-    # Need to override ensemble settings and to set noise settings to None
-    # for unperturbed nowcast generation
-    unpert_kwargs = nowcast_kwargs.copy()
-    unpert_kwargs.update({
-        "n_ens_members": 1,
-        "noise_method": None,
-        "vel_pert_method": None,
-    })
-    forecast, meta = generate(observations, motion_field, nowcaster, unpert_kwargs,
-                              metadata)
-
     return forecast, meta
 
 def generate_deterministic(observations, motion_field, nowcaster, nowcast_kwargs=None,
