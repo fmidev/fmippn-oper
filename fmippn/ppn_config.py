@@ -203,7 +203,6 @@ defaults = {
     "FFT_METHOD": "pyfftw",
     "GENERATE_DETERMINISTIC": True,
     "GENERATE_ENSEMBLE": True,
-    "GENERATE_UNPERTURBED": False,
     "REGENERATE_PERTURBED_MOTION": False,  # Re-calculate the perturbed motion fields used for pysteps nowcasting
     "VALUE_DOMAIN": "dbz",  # dbz or rrate
     # Z-R conversion parameters
@@ -235,7 +234,6 @@ defaults = {
     "OUTPUT_PATH": None,  # None uses pystepsrc output path
     "OUTPUT_TIME_FORMAT": "%Y-%m-%d %H:%M:%S",
     "STORE_ENSEMBLE": True, # Write each ensemble member to output
-    "STORE_UNPERTURBED": True,
     "STORE_DETERMINISTIC": True,  # Write det_fct to output
     "STORE_MOTION": True, # Write deterministic motion to output
     "STORE_PERTURBED_MOTION": True,  # Write motion for each ensemble member to output
