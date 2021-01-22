@@ -37,10 +37,8 @@ def get_config(override_name=None):
         for key, group in override_params.items():
             try:
                 params[key].update(group)
-                print(f"update key {key}")
             except KeyError:
                 params[key] = group
-                print(f"create key {key}")
             except AttributeError:
                 pass # Ignore keys that are not dictionaries
 
@@ -241,3 +239,11 @@ defaults = {
     "LOG_LEVEL": logging.INFO,  # see logging module documentation for valid levels
     "LOG_FOLDER": "../logs",
 }
+
+# Test cases
+if __name__ == '__main__':
+    from pprint import pprint
+    # Test custom parameter updating
+    print("Updating default parameters with custom config")
+    cfg = get_config("new_config")
+    pprint(cfg)
