@@ -44,6 +44,15 @@ def get_config(override_name=None):
     if params.get("OUTPUT_PATH", None) is None:
         params.update(OUTPUT_PATH="/tmp")
 
+    # Nowcast-method specific input checks
+    if params["run_options"].get("nowcast_method") in ["steps"]:
+        d = params["data_source"].get("timestep", None)
+        n = params["nowcast_options"].get("timestep", None)
+        if n is None:
+            params["nowcast_options"]["timestep"] = d
+        elif n != d:
+            raise ValueError()
+
     params.update(OUTPUT_PATH=os.path.expanduser(params["OUTPUT_PATH"]))
 
     return params
