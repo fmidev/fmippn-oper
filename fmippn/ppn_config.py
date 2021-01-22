@@ -157,6 +157,22 @@ def dump_defaults():
 # Default parameters for PPN, other dictionaries should override these parameters
 # using dict.update() method.
 defaults = {
+    # Option groups in alphabetical order
+    "data_options": {
+    },
+
+    "data_source": {
+    },
+
+    "logging_options": {
+    },
+
+    "motion_options": {
+    },
+
+    "output_options": {
+    },
+
     # Method selections
     "DOMAIN": "fmi", # See pystepsrc for valid data sources
     "OPTFLOW_METHOD": "lucaskanade",
