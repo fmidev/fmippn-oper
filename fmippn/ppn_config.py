@@ -163,6 +163,9 @@ defaults = {
     },
 
     "logging": {
+        "write_log": False,
+        "log_level": logging.INFO,
+        "log_folder": "/tmp",
     },
 
     "motion_options": {
@@ -234,10 +237,7 @@ defaults = {
     "STORE_PERTURBED_MOTION": True,  # Write motion for each ensemble member to output
     "SCALER": 100,
     "SCALE_ZERO": "auto",  # Value for "0" in scaled units. Set to "auto" or None for minimum value found before scaling
-    # Logging parameters
-    "WRITE_LOG": False,
-    "LOG_LEVEL": logging.INFO,  # see logging module documentation for valid levels
-    "LOG_FOLDER": "../logs",
+
 }
 
 # Test cases

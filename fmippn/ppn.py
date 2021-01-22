@@ -39,7 +39,7 @@ def run(timestamp=None, config=None, **kwargs):
 
     PD.update(ppn_config.get_config(config))
 
-    initialise_logging(log_folder=PD.get("LOG_FOLDER", "./"),
+    initialise_logging(log_folder=PD["logging"]["log_folder"],
                        log_fname="ppn-{:%Y%m%d}.log".format(dt.datetime.utcnow()))
 
     log("info", "Program starting.")
@@ -169,21 +169,23 @@ def run(timestamp=None, config=None, **kwargs):
 
     # WRITE OUTPUT TO A FILE
     write_to_file(startdate, gen_output, nc_fname, store_meta)
-    log("info", "Finished writing output to a file.")
-    log("info", "Run complete. Exiting.")
+    # FIXME: Disable temporarily, uncomment when write_to_file ignores dictionaries
+    # ~ log("info", "Finished writing output to a file.")
+    # ~ log("info", "Run complete. Exiting.")
 
 
 def initialise_logging(log_folder='./', log_fname='ppn.log'):
     """Wrapper for ppn_logger.config_logging() method. Does nothing if writing
     to log is not enabled."""
-    if PD["WRITE_LOG"]:
+    if PD["logging"]["write_log"]:
         full_path = os.path.expanduser(log_folder)
-        ppn_logger.config_logging(os.path.join(full_path, log_fname), level=PD["LOG_LEVEL"])
+        ppn_logger.config_logging(os.path.join(full_path, log_fname),
+                                  level=PD["logging"]["log_level"])
 
 def log(level, msg, *args, **kwargs):
     """Wrapper for ppn_logger. Function does nothing if writing to log is
     not enabled."""
-    if PD["WRITE_LOG"]:
+    if PD["logging"]["write_log"]:
         ppn_logger.write_to_log(level, msg, *args, **kwargs)
 
 def importer_method(module="pysteps", **kwargs):
