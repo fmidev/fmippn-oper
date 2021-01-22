@@ -157,6 +157,9 @@ def dump_defaults():
 defaults = {
     # Option groups in alphabetical order
     "data_options": {
+        "quantity": "dbz",  # Used for PGM, ODIM data should use "qty" in data_source.kwargs
+        "zr_a": 223,
+        "zr_b": 1.53,
     },
 
     "data_source": {
@@ -184,6 +187,19 @@ defaults = {
     },
 
     "output_options": {
+        #
+        "path": "/tmp",
+        #
+        "store_motion": True,
+        "store_perturbed_motion": False,
+        "store_ensemble": True,
+        "store_deterministic": True,
+        #
+        "as_quantity": None, # None == same as input. Other valids: DBZH, RATE (see ODIM standard)
+        "scaler": 10,
+        "scale_zero": "auto",
+        # TODO: Implement callback
+        "write_leadtimes_separately": False, # Store each leadtime after calculating it instead of everything at the end
     },
 
     "run_options": {
@@ -199,15 +215,10 @@ defaults = {
 
     # Method selections
     "DOMAIN": "fmi", # See pystepsrc for valid data sources
-    "OPTFLOW_METHOD": "lucaskanade",
-    "FFT_METHOD": "pyfftw",
     "GENERATE_DETERMINISTIC": True,
     "GENERATE_ENSEMBLE": True,
     "REGENERATE_PERTURBED_MOTION": False,  # Re-calculate the perturbed motion fields used for pysteps nowcasting
     "VALUE_DOMAIN": "dbz",  # dbz or rrate
-    # Z-R conversion parameters
-    "ZR_A": 223.,
-    "ZR_B": 1.53,
     # Nowcasting parameters
     "NUM_PREV_OBSERVATIONS": 3,
     "NOWCAST_TIMESTEP": 5,
