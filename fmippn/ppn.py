@@ -54,7 +54,6 @@ def run(timestamp=None, config=None, **kwargs):
         startdate = dt.datetime.strptime(timestamp, "%Y%m%d%H%M")
     else:
         startdate = utils.utcnow_floored(increment=5)
-    enddate = startdate + dt.timedelta(minutes=PD["MAX_LEADTIME"])
 
     if nc_fname is None:
         nc_fname = "nc_{:%Y%m%d%H%M}.h5".format(startdate)
@@ -74,7 +73,7 @@ def run(timestamp=None, config=None, **kwargs):
 
     # NOWCASTING
 
-    log("info", "Generating nowcasts from %s to %s" % (startdate, enddate))
+    log("info", "Generating nowcasts, starting from %s" % (startdate))
 
     time_at_start = dt.datetime.today()
 
