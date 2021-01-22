@@ -170,7 +170,26 @@ defaults = {
     "motion_options": {
     },
 
+    "nowcast_options": {
+        # Default to the nowcast method defaults
+        # n_ens_members = 24,
+        # n_cascade_levels = 6,
+        "fft_method": "pyfftw",
+        "vel_pert_kwargs": {
+            # lucaskanade/fmi values given in pysteps.nowcasts.steps.forecast() method documentation
+            "p_par": [2.20837526, 0.33887032, -2.48995355],
+            "p_perp": [2.21722634, 0.32359621, -2.57402761],
+        },
+    },
+
     "output_options": {
+    },
+
+    "run_options": {
+        "leadtimes": 12,  # int = number of timesteps, list of floats = forecast for these lead times
+        # if leadtimes is not a list and nowcast_timestep != input timestep, use these to make it into one
+        "nowcast_timestep": 5, # optional, default to input timestep
+        "max_leadtime": 60, # optional, used only if "leadtimes" is None
     },
 
     # Method selections
@@ -186,23 +205,6 @@ defaults = {
     "ZR_A": 223.,
     "ZR_B": 1.53,
     # Nowcasting parameters
-    "nowcast_options": {
-        # Default to the nowcast method defaults
-        # n_ens_members = 24,
-        # n_cascade_levels = 6,
-        "fft_method": "pyfftw",
-        "vel_pert_kwargs": {
-            # lucaskanade/fmi values given in pysteps.nowcasts.steps.forecast() method documentation
-            "p_par": [2.20837526, 0.33887032, -2.48995355],
-            "p_perp": [2.21722634, 0.32359621, -2.57402761],
-        },
-    },
-    "run_options": {
-        "leadtimes": 12,  # int = number of timesteps, list of floats = forecast for these lead times
-        # if leadtimes is not a list and nowcast_timestep != input timestep, use these to make it into one
-        "nowcast_timestep": 5, # optional, default to input timestep
-        "max_leadtime": 60, # optional, used only if "leadtimes" is None
-    },
     "NUM_PREV_OBSERVATIONS": 3,
     "NOWCAST_TIMESTEP": 5,
     "MAX_LEADTIME": 120,
