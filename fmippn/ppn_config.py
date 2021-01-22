@@ -36,6 +36,15 @@ def get_config(override_name=None):
             raise ValueError(no_config_found_msg)
         params.update(override_params)
 
+    ### Configuration input checks
+    # For convenience
+    data = params.get("data_source")
+    runopt = params.get("run_options")
+    ncopt = params.get("nowcast_options")
+
+    # Leadtimes generation
+    _check_leadtime(params)
+
     # This parameter might not exists in configuration
     if params.get("NUM_TIMESTEPS", None) is None:
         params.update(NUM_TIMESTEPS=int(params["MAX_LEADTIME"] / params["NOWCAST_TIMESTEP"]))
@@ -45,17 +54,47 @@ def get_config(override_name=None):
         params.update(OUTPUT_PATH="/tmp")
 
     # Nowcast-method specific input checks
-    if params["run_options"].get("nowcast_method") in ["steps"]:
-        d = params["data_source"].get("timestep", None)
-        n = params["nowcast_options"].get("timestep", None)
+    if runopt.get("nowcast_method") in ["steps"]:
+        d = data.get("timestep", None)
+        n = ncopt.get("timestep", None)
         if n is None:
-            params["nowcast_options"]["timestep"] = d
+            ncopt["timestep"] = d
         elif n != d:
             raise ValueError()
 
     params.update(OUTPUT_PATH=os.path.expanduser(params["OUTPUT_PATH"]))
 
     return params
+
+# FIXME: Logic could be simplified
+def _check_leadtime(params):
+    # For convenience
+    runopt = params.get("run_options")
+    leadtimes = runopt.get("leadtimes")
+    max_leadtime = runopt.get("max_leadtime")
+    nowcast_timestep = runopt.get("nowcast_timestep")
+    input_timestep = params.get("data_source", dict()).get("timestep")
+
+    # leadtimes is not given, but timestep and maximum is
+    if leadtimes is None:
+        if None in [max_leadtime, nowcast_timestep]:
+            raise ValueError("Need to set both 'max_leadtime' and 'nowcast_timestep' if 'leadtimes'"
+                             " is not given")
+        leadtimes = int(max_leadtime / nowcast_timestep)
+
+    # leadtimes is given as number ("this many leadtimes"), check the input data timestep
+    if isinstance(leadtimes, int):
+        # if input data timestep == nowcast timestep or nowcast timestep is None, pass
+        # else generate a list
+        if nowcast_timestep is not None and nowcast_timestep != input_timestep:
+            runopt["leadtimes"] = [nowcast_timestep + i*nowcast_timestep for i in range(leadtimes)]
+
+    # if leadtimes is a list, pass (might need to include a check for valid values within list)
+    elif isinstance(leadtimes, (list, tuple)):
+        pass
+    else:
+        raise ValueError("Cannot figure out leadtimes")
+    # else raise error?
 
 def get_params(name):
     """Utility function for easier access to wanted parametrizations.
@@ -136,6 +175,9 @@ defaults = {
     },
     "run_options": {
         "leadtimes": 12,  # int = number of timesteps, list of floats = forecast for these lead times
+        # if leadtimes is not a list and nowcast_timestep != input timestep, use these to make it into one
+        "nowcast_timestep": 5, # optional, default to input timestep
+        "max_leadtime": 60, # optional, used only if "leadtimes" is None
     },
     "NUM_PREV_OBSERVATIONS": 3,
     "NOWCAST_TIMESTEP": 5,
