@@ -124,7 +124,6 @@ defaults = {
     "ZR_B": 1.53,
     # Nowcasting parameters
     "nowcast_options": {
-        "timesteps": 12,  # int = number of timesteps, list of floats = forecast for these lead times
         # Default to the nowcast method defaults
         # n_ens_members = 24,
         # n_cascade_levels = 6,
@@ -134,6 +133,9 @@ defaults = {
             "p_par": [2.20837526, 0.33887032, -2.48995355],
             "p_perp": [2.21722634, 0.32359621, -2.57402761],
         },
+    },
+    "run_options": {
+        "leadtimes": 12,  # int = number of timesteps, list of floats = forecast for these lead times
     },
     "NUM_PREV_OBSERVATIONS": 3,
     "NOWCAST_TIMESTEP": 5,

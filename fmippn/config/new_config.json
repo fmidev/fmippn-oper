@@ -14,7 +14,6 @@
   "motion_options": {},
 
   "nowcast_options": {
-    "timesteps": 12,
     "n_ens_members": 5,
     "n_cascade_levels": 8,
     "timestep": 5,
@@ -42,7 +41,9 @@
     "mask_method": "incremental"
   },
 
-  "run_options": {},
+  "run_options": {
+      "leadtimes": 12
+  },
 
   "output_options": {},
 
