@@ -34,7 +34,15 @@ def get_config(override_name=None):
             no_config_found_msg = ("Couldn't find overriding parameters in "
                                    "ppn_config. Key '{}' was unrecognised.").format(override_name)
             raise ValueError(no_config_found_msg)
-        params.update(override_params)
+        for key, group in override_params.items():
+            try:
+                params[key].update(group)
+                print(f"update key {key}")
+            except KeyError:
+                params[key] = group
+                print(f"create key {key}")
+            except AttributeError:
+                pass # Ignore keys that are not dictionaries
 
     ### Configuration input checks
     # For convenience
