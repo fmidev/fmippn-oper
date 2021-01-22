@@ -93,7 +93,7 @@ def copy_odim_attributes(infile,outf):
     inf.close()
 
 
-def store_odim_dset_attrs(dset_grp, dset_index, startdate, timestep, metadata):    
+def store_odim_dset_attrs(dset_grp, dset_index, startdate, timestep):    
     """Store ODIM attributes to datasets. Each dataset
     represents a different timestep.
 
@@ -102,18 +102,10 @@ def store_odim_dset_attrs(dset_grp, dset_index, startdate, timestep, metadata):
     dset_index -- dataset number (dataset1, dataset2 etc), indicates number of timestep
     startdate -- nowcast analysis time (datetime object)
     timestep -- time difference between nowcast fields (int) 
-    metadata -- array containing metadata
     """
 
     #Calculate valid time for each step
     valid_time = startdate + (dset_index + 1) * dt.timedelta(minutes=timestep)
-
-    #Change quantity to ODIM format                                                                                                          
-    quantity=metadata.get("unit", "Unknown")
-    if quantity == "dBZ":
-        quantity="DBZH"
-    elif quantity == "rrate":
-        quantity="RATE"
         
     #Add attributes to each dataset                                                                                                          
     dset_how_grp=dset_grp.create_group("how")
@@ -124,7 +116,28 @@ def store_odim_dset_attrs(dset_grp, dset_index, startdate, timestep, metadata):
     dset_what_grp.attrs["enddate"] = int(dt.datetime.strftime(valid_time, "%Y%m%d"))
     dset_what_grp.attrs["starttime"] = int(dt.datetime.strftime(valid_time, "%H%M%S"))
     dset_what_grp.attrs["endtime"] = int(dt.datetime.strftime(valid_time, "%H%M%S"))
-    dset_what_grp.attrs["quantity"] = quantity
     
 
-    
+def store_odim_data_what_attrs(data_grp,metadata,scale_meta):  
+    """Store ODIM attributes to data/what group. Each data group (data1, data2 ...)
+    represents a different ensemble member.
+
+    Keyword arguments:
+    data_grp -- data HDF5 group object (data1, data2 ...)
+    metadata -- array containing FMIPPN output metadata
+    scale_meta -- scale values metadata
+    """
+
+    #Change quantity to ODIM format
+    quantity=metadata.get("unit","Unknown")
+    if quantity == "dBZ":
+        quantity="DBZH"
+    elif quantity == "rrate":
+        quantity="RATE"
+
+    #Create data/what group and store metadata
+    data_what_grp=data_grp.create_group("what")
+    data_what_grp.attrs["quantity"] = quantity
+    data_what_grp.attrs["gain"] = scale_meta.get("gain")
+    data_what_grp.attrs["offset"] = scale_meta.get("offset")
+    data_what_grp.attrs["nodata"] = scale_meta.get("nodata")

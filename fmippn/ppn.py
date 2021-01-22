@@ -636,12 +636,15 @@ def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_f
                 dset_grp=outf.create_group(f"/dataset{index+1}")
 
                 #Add attributes to each dataset
-                utils.store_odim_dset_attrs(dset_grp, index, startdate, timestep, metadata)
-
+                utils.store_odim_dset_attrs(dset_grp, index, startdate, timestep)
+                
                 #Store data
                 ts_point = deterministic[index, :, :]
-                outf.create_dataset(f"/dataset{index+1}/data1/data",data=ts_point)
+                data_grp=dset_grp.create_group("data1")
+                data_grp.create_dataset("data",data=ts_point)
 
+                #Store data/what group attributes                                                                                                    
+                utils.store_odim_data_what_attrs(data_grp,metadata,det_scale_meta)
                 
     return None
 
@@ -699,15 +702,18 @@ def write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname=
                 dset_grp=outf.create_group(f"/dataset{index+1}")
 
                 #Add attributes to each dataset
-                utils.store_odim_dset_attrs(dset_grp, index, startdate, timestep, metadata)
+                utils.store_odim_dset_attrs(dset_grp, index, startdate, timestep)
                 
                 # Store ensemble members
                 for eidx in range(PD["ENSEMBLE_SIZE"]):
                     
                     #Store data
-                    ts_point = ensemble_forecast[eidx, :, :, :]
-                    dset_grp.create_dataset(f"data{eidx+1}/data",data=ts_point)
+                    ts_point = ensemble_forecast[eidx, index, :, :]
+                    data_grp=dset_grp.create_group(f"data{eidx+1}")
+                    data_grp.create_dataset("data",data=ts_point)
 
+                    #Store data/what group attributes
+                    utils.store_odim_data_what_attrs(data_grp,metadata,ens_scale_meta)
                 
     return None
 
