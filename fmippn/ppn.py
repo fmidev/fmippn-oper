@@ -66,9 +66,9 @@ def run(timestamp=None, config=None, **kwargs):
 
     # Used methods
     importer = importer_method(name=datasource["importer"])
-    optflow = optflow_method()
+    optflow = optflow_method("pysteps")
     nowcaster = nowcast_method("pysteps")
-    deterministic_nowcaster = nowcast_method("extrapolation")
+    deterministic_nowcaster = deterministic_method("pysteps")
 
     log("debug", "Setup finished")
 
@@ -230,12 +230,29 @@ def nowcast_method(module="pysteps", **kwargs):
     Raise ValueError for invalid `module` selectors.
     """
     if module == "pysteps":
-        return pysteps.nowcasts.get_method("steps", **kwargs)
-    if module == "extrapolation":
-        return pysteps.nowcasts.get_method("extrapolation", **kwargs)
+        return pysteps.nowcasts.get_method(PD["run_options"]["nowcast_method"], **kwargs)
     # Add more options here
 
     raise ValueError("Unknown module {} for nowcast method".format(module))
+
+def deterministic_method(module="pysteps", **kwargs):
+    """Wrapper for easily switching between modules which provide deterministic
+    nowcasting methods.
+
+    Input:
+        module -- parameter for if/else block (default="pysteps")
+        **kwargs -- additional keyword arguments passed to nowcast method
+
+    Output:
+        function -- a function object
+
+    Raise ValueError for invalid `module` selectors.
+    """
+    if module == "pysteps":
+        return pysteps.nowcasts.get_method(PD["run_options"]["deterministic_method"], **kwargs)
+    # Add more options here
+
+    raise ValueError("Unknown module {} for deterministic method".format(module))
 
 def generate_pysteps_setup():
     """Generate `datasource` and `nowcast_kwargs` objects that are suitable
