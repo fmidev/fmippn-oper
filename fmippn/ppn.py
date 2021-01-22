@@ -211,7 +211,7 @@ def optflow_method(module="pysteps", **kwargs):
     Raise ValueError for invalid `module` selectors.
     """
     if module == "pysteps":
-        return pysteps.motion.get_method(PD["OPTFLOW_METHOD"], **kwargs)
+        return pysteps.motion.get_method(PD["run_options"]["motion_method"], **kwargs)
     # Add more options here
 
     raise ValueError("Unknown module {} for optical flow method".format(module))
@@ -350,7 +350,7 @@ def thresholding(data, metadata, threshold=None, norain_value=None, fill_nan=Tru
 
 def generate(observations, motion_field, nowcaster, nowcast_kwargs, metadata=None):
     """Generate ensemble nowcast using pysteps nowcaster."""
-    forecast = nowcaster(observations, motion_field, PD["NUM_TIMESTEPS"],
+    forecast = nowcaster(observations, motion_field, PD["run_options"]["leadtimes"],
                          **nowcast_kwargs)
 
     if (metadata["unit"] == "mm/h") and (metadata["transform"] == "dB"):

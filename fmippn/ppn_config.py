@@ -191,6 +191,10 @@ defaults = {
         # if leadtimes is not a list and nowcast_timestep != input timestep, use these to make it into one
         "nowcast_timestep": 5, # optional, default to input timestep
         "max_leadtime": 60, # optional, used only if "leadtimes" is None
+        # Methods
+        "motion_method": "lucaskanade",
+        "nowcast_method": "steps",
+        "deterministic_method": "extrapolation"
     },
 
     # Method selections
