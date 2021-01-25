@@ -48,6 +48,7 @@ def get_config(override_name=None):
     runopt = params.get("run_options")
     ncopt = params.get("nowcast_options")
 
+    _check_datasource(data)
     # Leadtimes generation
     _check_leadtime(params)
 
@@ -71,6 +72,28 @@ def get_config(override_name=None):
     params.update(OUTPUT_PATH=os.path.expanduser(params["OUTPUT_PATH"]))
 
     return params
+
+def _check_datasource(ds):
+    """Check config file for errors in data_source definition"""
+    if not isinstance(ds, dict):
+        raise ValueError("Configuration error: mandatory option group 'data_source' is missing!")
+
+    required_keys = ["root_path", "path_fmt", "fn_pattern", "fn_ext", "importer",
+                     "timestep", "importer_kwargs"]  # importer_kwargs may be empty
+    # Go through all keys and display all missing keys
+    missing = []
+    for key in required_keys:
+        value = ds.get(key, None)
+        if value is None:
+            missing.append(key)
+    if missing:
+        raise ValueError("Following required parameters are missing from data_source group: {}".format(missing))
+    # Type checks
+    if not isinstance(ds.get("timestep"), int):
+        raise TypeError("Configuration error in data_sources: timestep must be an integer")
+    if not isinstance(ds.get("importer_kwargs"), dict):
+        raise TypeError('Configuration error in data_sources: importer_kwargs must be an object '
+                        '({"key": value}). It can be empty.')
 
 # FIXME: Logic could be simplified
 def _check_leadtime(params):
