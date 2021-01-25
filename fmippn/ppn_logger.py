@@ -27,6 +27,9 @@ def write_to_log(level, msg, *args, **kwargs):
     """Write `msg` at logging level `level` to log.
     args and kwargs are passed to logging functions.
     """
+    if _logger is None:
+        raise RuntimeError("Tried to write to log before logging was configured! "
+                           "Call 'configure_logging' first.")
     lvl = level.lower()
     if lvl == 'debug':
         _logger.debug(msg, *args, **kwargs)
