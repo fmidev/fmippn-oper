@@ -28,15 +28,15 @@ def write_to_log(level, msg, *args, **kwargs):
     args and kwargs are passed to logging functions.
     """
     lvl = level.lower()
-    if lvl == 'critical':
-        _logger.critical(msg, *args, **kwargs)
+    if lvl == 'debug':
+        _logger.debug(msg, *args, **kwargs)
+    elif lvl == 'info':
+        _logger.info(msg, *args, **kwargs)
     elif lvl == 'error':
         _logger.error(msg, *args, **kwargs)
     elif lvl == 'warning':
         _logger.warning(msg, *args, **kwargs)
-    elif lvl == 'info':
-        _logger.info(msg, *args, **kwargs)
-    elif lvl == 'debug':
-        _logger.debug(msg, *args, **kwargs)
+    elif lvl == 'critical':
+        _logger.critical(msg, *args, **kwargs)
     else:
         raise ValueError("Unknown logging level {}".format(level))
