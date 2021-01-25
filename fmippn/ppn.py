@@ -290,10 +290,11 @@ def read_observations(startdate, datasource, importer):
                                            datasource["fn_ext"],
                                            datasource["timestep"],
                                            num_prev_files=PD["NUM_PREV_OBSERVATIONS"])
-    except OSError:
+    except OSError as pysteps_error:
+        error_msg = "Failed to read input data!"
+        log("error", f"OSError was raised: {error_msg}")
         # Re-raise so traceback is shown in stdout and program stops
-        log("error", "OSError was raised, see output for traceback")
-        raise OSError("Failed to read input data")
+        raise OSError(error_msg) from pysteps_error
 
     # PGM files contain dBZ values
     obs, _, metadata = pysteps.io.readers.read_timeseries(filelist,
