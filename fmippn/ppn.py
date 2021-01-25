@@ -313,10 +313,12 @@ def read_observations(startdate, datasource, importer):
     return obs, metadata
 
 def dbz_to_rrate(data, metadata):
-    return pysteps.utils.conversion.to_rainrate(data, metadata, PD["ZR_A"], PD["ZR_B"])
+    return pysteps.utils.conversion.to_rainrate(data, metadata, PD["data_options"]["zr_a"],
+                                                PD["data_options"]["zr_b"])
 
 def rrate_to_dbz(data, metadata):
-    return pysteps.utils.conversion.to_reflectivity(data, metadata, PD["ZR_A"], PD["ZR_B"])
+    return pysteps.utils.conversion.to_reflectivity(data, metadata, PD["data_options"]["zr_a"],
+                                                    PD["data_options"]["zr_b"])
 
 def transform_to_decibels(data, metadata, inverse=False):
     """Transform data to decibel units. Assumes thresholded data.
