@@ -20,6 +20,7 @@ generating the file is to run following command on command line:
 import logging
 import json
 import os
+from json.decoder import JSONDecodeError
 
 # Overriding defaults with configuration from file
 def get_config(override_name=None):
@@ -153,8 +154,12 @@ def get_params(name):
     try:
         with open(cfname, "r") as f:
             params = json.load(f)
-    except FileNotFoundError:
-        params = dict()
+    except FileNotFoundError as exc:
+        file_missing_msg = ("Cannot find requested config '{}'! Are the filename and path correct?"
+                            "\n{}").format(os.path.splitext(name)[0], cfname)
+        raise OSError(file_missing_msg) from exc
+    except JSONDecodeError as exc:
+        raise RuntimeError("Could not decode config file. Is it valid JSON file?") from exc
 
     return params
 
