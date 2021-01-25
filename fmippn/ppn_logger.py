@@ -2,6 +2,8 @@
 
 import logging
 
+_logger = None
+
 def config_logging(fname, level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S"):
     """Setup logger object using logging.basicConfig.
 
@@ -10,12 +12,16 @@ def config_logging(fname, level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S"):
 
     `level` and `datefmt` arguments correspond to logging.basicConfig arguments.
     """
-    logging.basicConfig(
-        filename=fname,
-        level=level,
-        datefmt=datefmt,
-        format="%(asctime)s (%(name)s) %(levelname)s: %(message)s",
+    global _logger
+    formatter = logging.Formatter(
+        fmt="%(asctime)s (%(name)s) %(levelname)s: %(message)s",
+        datefmt=datefmt
     )
+    handler = logging.FileHandler(fname)
+    handler.setFormatter(formatter)
+    _logger = logging.getLogger("FMIPPN")
+    _logger.addHandler(handler)
+    _logger.setLevel(level)
 
 def write_to_log(level, msg, *args, **kwargs):
     """Write `msg` at logging level `level` to log.
@@ -23,14 +29,14 @@ def write_to_log(level, msg, *args, **kwargs):
     """
     lvl = level.lower()
     if lvl == 'critical':
-        logging.critical(msg, *args, **kwargs)
+        _logger.critical(msg, *args, **kwargs)
     elif lvl == 'error':
-        logging.error(msg, *args, **kwargs)
+        _logger.error(msg, *args, **kwargs)
     elif lvl == 'warning':
-        logging.warning(msg, *args, **kwargs)
+        _logger.warning(msg, *args, **kwargs)
     elif lvl == 'info':
-        logging.info(msg, *args, **kwargs)
+        _logger.info(msg, *args, **kwargs)
     elif lvl == 'debug':
-        logging.debug(msg, *args, **kwargs)
+        _logger.debug(msg, *args, **kwargs)
     else:
         raise ValueError("Unknown logging level {}".format(level))
