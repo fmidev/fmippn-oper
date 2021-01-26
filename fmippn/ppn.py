@@ -145,6 +145,7 @@ def run(timestamp=None, config=None, **kwargs):
     # FIXME: temporary hack to prevent crashes during saving the output
     # Remove these when the write_to_file function has been rewritten
     PD["ENSEMBLE_SIZE"] = PD.get("nowcast_options").get("n_ens_members")
+    use_old_format = PD["output_options"].get("use_old_format", False)
     del PD["data_source"]
     del PD["data_options"]
     del PD["motion_options"]
@@ -157,7 +158,11 @@ def run(timestamp=None, config=None, **kwargs):
         del store_meta["seed"]
 
     # WRITE OUTPUT TO A FILE
-    write_to_file(startdate, gen_output, nc_fname, store_meta)
+    if use_old_format:
+        write_to_file(startdate, gen_output, nc_fname, store_meta)
+    else:
+        # FIXME: Add new ODIM-style function here
+        print("Placeholder: Write using new format")
     # FIXME: Disable temporarily, uncomment when write_to_file ignores dictionaries
     # ~ log("info", "Finished writing output to a file.")
     # ~ log("info", "Run complete. Exiting.")

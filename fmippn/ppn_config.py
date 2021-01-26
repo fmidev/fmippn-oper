@@ -228,6 +228,8 @@ defaults = {
         "scale_zero": "auto",
         # TODO: Implement callback
         "write_leadtimes_separately": False, # Store each leadtime after calculating it instead of everything at the end
+
+        "use_old_format": False,  # Remove when postprocessing can use ODIM format
     },
 
     "run_options": {

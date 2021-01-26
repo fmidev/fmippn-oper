@@ -45,7 +45,9 @@
       "leadtimes": 12
   },
 
-  "output_options": {},
+  "output_options": {
+    "use_old_format": true
+  },
 
   "logging": {
     "write_log": true,
