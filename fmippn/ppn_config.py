@@ -185,7 +185,7 @@ def dump_defaults():
 defaults = {
     # Option groups in alphabetical order
     "data_options": {
-        "quantity": "dbz",  # Used for PGM, ODIM data should use "qty" in data_source.kwargs
+        "pgm_quantity": "dbz",  # Used for PGM, ODIM data should use "qty" in data_source.kwargs
         "zr_a": 223,
         "zr_b": 1.53,
     },
