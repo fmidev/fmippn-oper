@@ -159,8 +159,10 @@ def run(timestamp=None, config=None, **kwargs):
     # Test writing ODIM output
     nc_det_fname=None
     nc_ens_fname=None
+    nc_mot_fname=None
     write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_fname, store_meta)
     write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname, store_meta)
+    write_odim_motion_to_file(startdate, datasource, gen_output, nc_mot_fname, store_meta)
     
     log("info", "Finished writing output to a file.")
     log("info", "Run complete. Exiting.")
@@ -492,14 +494,17 @@ def prepare_data_for_writing(forecast):
     if scale_zero in [None, "auto"]:
         scale_zero = np.nanmin(forecast)
     prepared_forecast = utils.prepare_fct_for_saving(forecast, scaler, scale_zero,
-                                                     store_dtype, store_nodata_value)
+                                                    store_dtype, store_nodata_value)
 
+    # TBD! Add undetect to metadata once its read from input data
+    #undetect=scaler * (orig_undetect - scale_zero)
+    
     metadata = {
         "nodata": store_nodata_value,
         "gain": 1./scaler,
         "offset": scale_zero,
     }
-
+    
     return prepared_forecast, metadata
 
 def write_to_file(startdate, gen_output, nc_fname, metadata=None):
@@ -612,9 +617,6 @@ def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_f
     #Output filename
     if nc_det_fname is None:
         nc_det_fname = "nc_det_{:%Y%m%d%H%M}.h5".format(startdate)
-    
-    if metadata is None:
-        metadata = dict()
 
     if all((dataset is None for dataset in gen_output.values())):
         print("Nothing to store")
@@ -650,6 +652,66 @@ def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_f
 
 
 
+def write_odim_motion_to_file(startdate, datasource, gen_output, nc_mot_fname=None, metadata=None):
+    """Write motion field output in ODIM HDF5 format..
+
+    Input:
+        startdate -- nowcast analysis time (datetime object)
+        gen_output -- dictionary containing generated nowcasts
+        nc_mot_fname -- filename for output motion HDF5 file
+        metadata -- dictionary containing nowcast metadata (optional)
+    """
+
+    if metadata is None:
+        metadata = dict()
+
+    motion_field = gen_output.get("motion_field", None)
+
+    #Input filename
+    infile = pysteps.io.find_by_date(startdate,
+                                           datasource["root_path"],
+                                           datasource["path_fmt"],
+                                           datasource["fn_pattern"],
+                                           datasource["fn_ext"],
+                                           datasource["timestep"],
+                                           num_prev_files=0)[0][0]
+    print("infile",infile)
+
+    #Output filename
+    if nc_mot_fname is None:
+        nc_mot_fname = "nc_motion_{:%Y%m%d%H%M}.h5".format(startdate)
+    
+    if all((dataset is None for dataset in gen_output.values())):
+        print("Nothing to store")
+        log("warning", "Nothing to store into .h5 file. Skipping.")
+        return None
+
+    #Write motion field in ODIM format
+    if PD["STORE_MOTION"]:
+        with h5py.File(os.path.join(PD["OUTPUT_PATH"], nc_mot_fname), 'w') as outf:
+
+            #TBD! Change from pix/s to m/s
+            AMVU=motion_field[0]
+            AMVV=motion_field[1]
+            
+            #Write AMVU and AMVV datasets and add attributes
+            amvu_grp=outf.create_group("/dataset/data1")
+            amvu_grp.create_dataset("data", data=AMVU)
+            amvu_what_grp=amvu_grp.create_group("what")
+            amvu_what_grp.attrs["quantity"]="AMVU"
+            
+            amvv_grp=outf.create_group("/dataset/data2")
+            amvv_grp.create_dataset("data", data=AMVV)
+            amvv_what_grp=amvv_grp.create_group("what")
+            amvv_what_grp.attrs["quantity"]="AMVV"
+            
+            #Copy attribute groups /what, /where and /how from input to output
+            utils.copy_odim_attributes(infile,outf)
+                
+    return None
+
+
+
 def write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname=None, metadata=None):
     """Write ensemble output in ODIM HDF5 format..
 
@@ -678,9 +740,6 @@ def write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname=
     #Output filename
     if nc_ens_fname is None:
         nc_ens_fname = "nc_ens_{:%Y%m%d%H%M}.h5".format(startdate)
-    
-    if metadata is None:
-        metadata = dict()
 
     if all((dataset is None for dataset in gen_output.values())):
         print("Nothing to store")
