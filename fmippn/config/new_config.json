@@ -46,7 +46,8 @@
   },
 
   "output_options": {
-    "use_old_format": true
+    "use_old_format": true,
+    "path": "./output"
   },
 
   "logging": {

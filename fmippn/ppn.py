@@ -149,21 +149,13 @@ def run(timestamp=None, config=None, **kwargs):
     # FIXME: temporary hack to prevent crashes during saving the output
     # Remove these when the write_to_file function has been rewritten
     PD["ENSEMBLE_SIZE"] = PD.get("nowcast_options").get("n_ens_members")
-    use_old_format = PD["output_options"].get("use_old_format", False)
-    del PD["data_source"]
-    del PD["data_options"]
-    del PD["motion_options"]
-    del PD["nowcast_options"]
-    del PD["run_options"]
-    del PD["output_options"]
-    del PD["logging"]
     if store_meta["seed"] is None:  # Cannot write None to HDF5
         del store_meta["seed"]
     if "SEED" in PD:
         del PD["SEED"]
 
     # WRITE OUTPUT TO A FILE
-    if use_old_format:
+    if PD["output_options"].get("use_old_format", False):
         write_to_file(startdate, gen_output, nc_fname, store_meta)
     else:
         # FIXME: Add new ODIM-style function here
@@ -175,9 +167,9 @@ def run(timestamp=None, config=None, **kwargs):
         write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_fname, store_meta)
         write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname, store_meta)
         write_odim_motion_to_file(startdate, datasource, gen_output, nc_mot_fname, store_meta)
-    # FIXME: Disable temporarily, uncomment when write_to_file ignores dictionaries
-    # ~ log("info", "Finished writing output to a file.")
-    # ~ log("info", "Run complete. Exiting.")
+
+    log("info", "Finished writing output to a file.")
+    log("info", "Run complete. Exiting.")
 
 
 def initialise_logging(log_folder='./', log_fname='ppn.log'):
@@ -497,7 +489,6 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
         metadata -- dictionary containing nowcast metadata (optional)
     """
     ensemble_forecast = gen_output.get("ensemble_forecast", None)
-    unperturbed = gen_output.get("unperturbed", None)
     deterministic = gen_output.get("deterministic", None)
     motion_field = gen_output.get("motion_field", None)
     ensemble_motion = gen_output.get("ensemble_motion", None)
@@ -511,10 +502,11 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
         return None
 
     output_options = PD["output_options"]
+    # We don't support irregular nowcast outputs here
+    nowcast_timestep = PD["run_options"].get("nowcast_timestep", PD["data_source"]["timestep"])
 
     ensemble_forecast, ens_scale_meta = prepare_data_for_writing(ensemble_forecast)
     deterministic, det_scale_meta = prepare_data_for_writing(deterministic)
-    unperturbed, unpert_scale_meta = prepare_data_for_writing(unperturbed)
 
     with h5py.File(os.path.join(output_options["path"], nc_fname), 'w') as outf:
         if ensemble_forecast is not None and output_options["store_ensemble"]:
@@ -523,7 +515,7 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
                 utils.store_timeseries(ens_grp,
                                        ensemble_forecast[eidx, :, :, :],
                                        startdate,
-                                       timestep=PD["NOWCAST_TIMESTEP"],
+                                       timestep=nowcast_timestep,
                                        metadata=ens_scale_meta)
 
         if ensemble_motion is not None and output_options["store_perturbed_motion"]:
@@ -534,34 +526,52 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
                     ens_grp = outf.create_group("member-{:0>2}".format(eidx))
                 ens_grp.create_dataset("motion", data=ensemble_motion[eidx])
 
-        if unperturbed is not None and PD["STORE_UNPERTURBED"]:
-            unpert_grp = outf.create_group("unperturbed")
-            utils.store_timeseries(unpert_grp, unperturbed[0, :, :, :], startdate,
-                                   timestep=PD["NOWCAST_TIMESTEP"],
-                                   metadata=det_scale_meta)
-
         if deterministic is not None and output_options["store_deterministic"]:
             det_grp = outf.create_group("deterministic")
             utils.store_timeseries(det_grp, deterministic, startdate,
-                                   timestep=PD["NOWCAST_TIMESTEP"],
-                                   metadata=unpert_scale_meta)
+                                   timestep=nowcast_timestep,
+                                   metadata=det_scale_meta)
 
         if output_options["store_motion"]:
             outf.create_dataset("motion", data=motion_field)
 
         meta = outf.create_group("meta")
+        # configuration "OUTPUT_TIME_FORMAT" is removed, new output uses ODIM standard
         meta.attrs["nowcast_started"] = dt.datetime.strftime(metadata["time_at_start"],
-                                                             PD["OUTPUT_TIME_FORMAT"])
+                                                             "%Y-%m-%d %H:%M:%S")
         meta.attrs["nowcast_ended"] = dt.datetime.strftime(metadata["time_at_end"],
-                                                           PD["OUTPUT_TIME_FORMAT"])
+                                                           "%Y-%m-%d %H:%M:%S")
         meta.attrs["nowcast_units"] = metadata.get("unit", "Unknown")
         meta.attrs["nowcast_seed"] = metadata.get("seed", "Unknown")
         meta.attrs["nowcast_init_time"] = dt.datetime.strftime(startdate, "%Y%m%d%H%M")
 
+        # Old configurations - may be used by postprocessing scripts
+        old_style_configs = {
+            # Method selections
+            #"DOMAIN": "fmi", # postprocessing defines this instead of reading it here
+            "VALUE_DOMAIN": PD["VALUE_DOMAIN"],  # Unused?
+            # Z-R conversion parameters
+            "ZR_A": PD["data_options"]["zr_a"],  #
+            "ZR_B": PD["data_options"]["zr_b"],  #
+            # Nowcasting parameters
+            "NOWCAST_TIMESTEP": nowcast_timestep,  #
+            "MAX_LEADTIME": PD["run_options"]["max_leadtime"],  #
+            "NUM_TIMESTEPS": PD["run_options"]["leadtimes"],  #
+            "ENSEMBLE_SIZE": PD["ENSEMBLE_SIZE"],  #
+            "NUM_CASCADES": PD["nowcast_options"]["n_cascade_levels"],  # Unused?
+            "RAIN_THRESHOLD": PD["RAIN_THRESHOLD"],  # Unused?
+            "NORAIN_VALUE": PD["NORAIN_VALUE"],  #
+            "KMPERPIXEL": PD["nowcast_options"]["kmperpixel"],  # Unused?
+            "CALCULATION_DOMAIN": PD["nowcast_options"]["domain"],  # Unused?
+            "VEL_PERT_KWARGS": PD["nowcast_options"]["vel_pert_kwargs"],
+            # Storing parameters
+            "FIELD_VALUES": PD["FIELD_VALUES"],  # Unused?
+            "STORE_DETERMINISTIC": output_options["store_deterministic"],  #
+            "STORE_PERTURBED_MOTION": output_options["store_perturbed_motion"],  #
+        }
+
         pd_meta = meta.create_group("configuration")
-        for key, value in PD.items():
-            if key in ["LOG_FOLDER", "LOG_LEVEL", "OUTPUT_PATH"]:
-                continue
+        for key, value in old_style_configs.items():
             pd_meta.attrs[key] = str(value)
 
         proj_meta = meta.create_group("projection")
