@@ -65,6 +65,25 @@ def prepare_fct_for_saving(fct, scaler, scale_zero, store_dtype, store_nodata_va
     fct_scaled = fct_scaled.astype(store_dtype)
     return fct_scaled
 
+def get_odim_attrs_from_input(infile):
+    """Read attribute groups /what, /where and /how from input ODIM HDF5 file.
+
+    Input:
+        infile -- ODIM HDF5 input composite filename
+
+    Output:
+        A dictionary with dictionaries 'what', 'where' and 'how' containing the attributes.
+    """
+    with h5py.File(infile, 'r') as f:
+        what = dict(f["what"].attrs)
+        where = dict(f["where"].attrs)
+        how = dict(f["how"].attrs)
+
+    return {
+        "what": what,
+        "where": where,
+        "how": how,
+    }
 
 def copy_odim_attributes(infile,outf):
     """Copy attribute groups /what, /where and /how from

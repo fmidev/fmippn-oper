@@ -78,9 +78,15 @@ def run(timestamp=None, config=None, **kwargs):
     time_at_start = dt.datetime.today()
 
     run_options = PD["run_options"]
-    print(run_options)
 
     input_files = get_filelist(startdate, datasource)
+
+    if datasource["importer"] in ["opera_hdf5"]:
+        odim_metadata = utils.get_odim_attrs_from_input(input_files[0][-1])  # input_files is a tuple of two lists
+    else:
+        # Cannot read ODIM metadata from non-ODIM files (.pgm)
+        odim_metadata = None
+
     observations, obs_metadata = read_observations(input_files, datasource, importer)
 
     motion_field = optflow(observations, **PD.get("motion_options", dict()))
