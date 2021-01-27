@@ -77,13 +77,16 @@ def run(timestamp=None, config=None, **kwargs):
 
     time_at_start = dt.datetime.today()
 
+    run_options = PD["run_options"]
+    print(run_options)
+
     observations, obs_metadata = read_observations(startdate, datasource, importer)
 
     motion_field = optflow(observations)
 
     # Regenerate ensemble motion
-    if PD["REGENERATE_PERTURBED_MOTION"]:
-        if PD["SEED"] is None:
+    if run_options.get("regenerate_perturbed_motion"):
+        if PD["nowcast_options"].get("seed") is None:
             raise ValueError("Cannot regenerate motion field with unknown seed value!")
         log("info", "Regenerating ensemble motion fields...")
         ensemble_motion = regenerate_ensemble_motion(motion_field, nowcast_kwargs)
@@ -91,14 +94,14 @@ def run(timestamp=None, config=None, **kwargs):
     else:
         ensemble_motion = None
 
-    if PD["GENERATE_ENSEMBLE"]:
+    if run_options.get("run_ensemble"):
         ensemble_forecast, ens_meta = generate(observations, motion_field, nowcaster,
                                                nowcast_kwargs, metadata=obs_metadata)
     else:
         ensemble_forecast = None
         ens_meta = dict()
 
-    if PD["GENERATE_DETERMINISTIC"]:
+    if run_options.get("run_deterministic"):
         deterministic, det_meta = generate_deterministic(observations[-1],
                                                          motion_field,
                                                          deterministic_nowcaster,
@@ -127,7 +130,7 @@ def run(timestamp=None, config=None, **kwargs):
         unit = "Unknown"
     store_meta = {
         "unit": unit,
-        "seed": PD["SEED"],
+        "seed": PD["nowcast_options"]["seed"],
         "projection": {
             "projstr": obs_metadata["projection"],
             "x1": obs_metadata["x1"],
@@ -153,9 +156,10 @@ def run(timestamp=None, config=None, **kwargs):
     del PD["run_options"]
     del PD["output_options"]
     del PD["logging"]
-    if PD["SEED"] is None:  # Cannot write None to HDF5
-        del PD["SEED"]
+    if store_meta["seed"] is None:  # Cannot write None to HDF5
         del store_meta["seed"]
+    if "SEED" in PD:
+        del PD["SEED"]
 
     # WRITE OUTPUT TO A FILE
     if use_old_format:

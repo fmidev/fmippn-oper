@@ -53,9 +53,9 @@ def get_config(override_name=None):
     # Leadtimes generation
     _check_leadtime(params)
 
-    # This parameter might not exists in configuration
-    if params.get("NUM_TIMESTEPS", None) is None:
-        params.update(NUM_TIMESTEPS=int(params["MAX_LEADTIME"] / params["NOWCAST_TIMESTEP"]))
+    # # This parameter might not exists in configuration
+    # if params.get("NUM_TIMESTEPS", None) is None:
+        # params.update(NUM_TIMESTEPS=int(params["MAX_LEADTIME"] / params["NOWCAST_TIMESTEP"]))
 
     # Default to /tmp. Change default value in the future?
     if params.get("OUTPUT_PATH", None) is None:
@@ -63,12 +63,16 @@ def get_config(override_name=None):
 
     # Nowcast-method specific input checks
     if runopt.get("nowcast_method") in ["steps"]:
+        # Timestep check
         d = data.get("timestep", None)
         n = ncopt.get("timestep", None)
         if n is None:
             ncopt["timestep"] = d
         elif n != d:
             raise ValueError()
+        # kmperpixel check
+        if ncopt.get("kmperpixel", None) is None and ncopt.get("vel_pert_method") in ["bps"]:
+            raise ValueError("Configuration error: kmperpixel is required")
 
     params.update(OUTPUT_PATH=os.path.expanduser(params["OUTPUT_PATH"]))
 
@@ -207,11 +211,26 @@ defaults = {
         # n_ens_members = 24,
         # n_cascade_levels = 6,
         "fft_method": "pyfftw",
+        "vel_pert_method": "bps",  # default for pysteps, requires kmperpixel to be set
         "vel_pert_kwargs": {
             # lucaskanade/fmi values given in pysteps.nowcasts.steps.forecast() method documentation
             "p_par": [2.20837526, 0.33887032, -2.48995355],
             "p_perp": [2.21722634, 0.32359621, -2.57402761],
         },
+        "domain": "spectral",  # default for pysteps
+
+        "num_workers": 6, # pysteps defaults to 1, we want more.
+        "seed": None,  # default for pysteps
+
+        # Previously hardcoded values
+        "extrap_method": "semilagrangian",
+        "noise_method": "nonparametric",
+        "ar_order": 2,
+        "mask_method": "incremental",
+        # Required parameters that need to be calculated or defined
+        #"kmperpixel": # required for motion perturbation method (bps)
+        #"timestep": # "Timestep" of MOTION VECTOR, get from input data
+        #"R_thr":  # must be in decibel units...
     },
 
     "output_options": {
@@ -237,6 +256,11 @@ defaults = {
         # if leadtimes is not a list and nowcast_timestep != input timestep, use these to make it into one
         "nowcast_timestep": 5, # optional, default to input timestep
         "max_leadtime": 60, # optional, used only if "leadtimes" is None
+        # What is calculated
+        "run_deterministic": True,
+        "run_ensemble": True,
+        "regenerate_perturbed_motion": False,  # Re-calculate the perturbed motion fields used for pysteps nowcasting
+
         # Methods
         "motion_method": "lucaskanade",
         "nowcast_method": "steps",
@@ -244,35 +268,16 @@ defaults = {
     },
 
     # Method selections
-    "DOMAIN": "fmi", # See pystepsrc for valid data sources
-    "GENERATE_DETERMINISTIC": True,
-    "GENERATE_ENSEMBLE": True,
-    "REGENERATE_PERTURBED_MOTION": False,  # Re-calculate the perturbed motion fields used for pysteps nowcasting
     "VALUE_DOMAIN": "dbz",  # dbz or rrate
     # Nowcasting parameters
     "NUM_PREV_OBSERVATIONS": 3,
     "NOWCAST_TIMESTEP": 5,
-    "MAX_LEADTIME": 120,
-    "NUM_TIMESTEPS": None,
-    "ENSEMBLE_SIZE": 24,
-    "NUM_CASCADES": 8,
-    "NUM_WORKERS": 6,
     "RAIN_THRESHOLD": 6.5,  # Roughly 0.1 mm/h using Z = 223 * R ** 1.53
     "NORAIN_VALUE": 1.5,  # Threshold minus 5 (dB) units. Roughly 0.04 mm/h using above
-    "KMPERPIXEL": 1.0,
-    "SEED": None,  # Default value in pysteps is None
-    "CALCULATION_DOMAIN": "spectral",  # "spatial" or "spectral", see also pysteps.nowcasts.steps() documentation
     # Motion perturbation parameters
     # Set to VEL_PERT_KWARGS to `None` to use pysteps's default values
-    "VEL_PERT_METHOD": "bps",
-    "VEL_PERT_KWARGS": {
-        # lucaskanade/fmi values given in pysteps.nowcasts.steps.forecast() method documentation
-        "p_par": [2.20837526, 0.33887032, -2.48995355],
-        "p_perp": [2.21722634, 0.32359621, -2.57402761],
-    },
     # Storing parameters
     "FIELD_VALUES": "dbz",  # Store values as rrate or dbz
-    "OUTPUT_PATH": None,  # None uses pystepsrc output path
     "OUTPUT_TIME_FORMAT": "%Y-%m-%d %H:%M:%S",
     "STORE_ENSEMBLE": True, # Write each ensemble member to output
     "STORE_DETERMINISTIC": True,  # Write det_fct to output
