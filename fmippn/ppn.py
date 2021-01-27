@@ -510,12 +510,14 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
         log("warning", "Nothing to store into .h5 file. Skipping.")
         return None
 
+    output_options = PD["output_options"]
+
     ensemble_forecast, ens_scale_meta = prepare_data_for_writing(ensemble_forecast)
     deterministic, det_scale_meta = prepare_data_for_writing(deterministic)
     unperturbed, unpert_scale_meta = prepare_data_for_writing(unperturbed)
 
-    with h5py.File(os.path.join(PD["OUTPUT_PATH"], nc_fname), 'w') as outf:
-        if ensemble_forecast is not None and PD["STORE_ENSEMBLE"]:
+    with h5py.File(os.path.join(output_options["path"], nc_fname), 'w') as outf:
+        if ensemble_forecast is not None and output_options["store_ensemble"]:
             for eidx in range(PD["ENSEMBLE_SIZE"]):
                 ens_grp = outf.create_group("member-{:0>2}".format(eidx))
                 utils.store_timeseries(ens_grp,
@@ -524,7 +526,7 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
                                        timestep=PD["NOWCAST_TIMESTEP"],
                                        metadata=ens_scale_meta)
 
-        if ensemble_motion is not None and PD["STORE_PERTURBED_MOTION"]:
+        if ensemble_motion is not None and output_options["store_perturbed_motion"]:
             for eidx in range(PD["ENSEMBLE_SIZE"]):
                 try:
                     ens_grp = outf["member-{:0>2}".format(eidx)]
@@ -538,13 +540,13 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
                                    timestep=PD["NOWCAST_TIMESTEP"],
                                    metadata=det_scale_meta)
 
-        if deterministic is not None and PD["STORE_DETERMINISTIC"]:
+        if deterministic is not None and output_options["store_deterministic"]:
             det_grp = outf.create_group("deterministic")
             utils.store_timeseries(det_grp, deterministic, startdate,
                                    timestep=PD["NOWCAST_TIMESTEP"],
                                    metadata=unpert_scale_meta)
 
-        if PD["STORE_MOTION"]:
+        if output_options["store_motion"]:
             outf.create_dataset("motion", data=motion_field)
 
         meta = outf.create_group("meta")
