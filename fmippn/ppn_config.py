@@ -75,6 +75,10 @@ def get_config(override_name=None):
             raise ValueError("Configuration error: kmperpixel is required")
 
     params.update(OUTPUT_PATH=os.path.expanduser(params["OUTPUT_PATH"]))
+    # Expand ~ in paths, if any
+    params["data_source"]["root_path"] = os.path.expanduser(params["data_source"]["root_path"])
+    params["output_options"]["path"] = os.path.expanduser(params["output_options"]["path"])
+    params["logging"]["log_folder"] = os.path.expanduser(params["logging"]["log_folder"])
 
     return params
 
