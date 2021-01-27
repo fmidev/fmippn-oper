@@ -618,8 +618,8 @@ def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_f
     deterministic, det_scale_meta = prepare_data_for_writing(deterministic)
 
     #Write deterministic forecast in ODIM format
-    if deterministic is not None and PD["STORE_DETERMINISTIC"]:
-        with h5py.File(os.path.join(PD["OUTPUT_PATH"], nc_det_fname), 'w') as outf:
+    if deterministic is not None and PD["output_options"]["store_deterministic"]:
+        with h5py.File(os.path.join(PD["output_options"]["path"], nc_det_fname), 'w') as outf:
 
             #Copy attribute groups /what, /where and /how from input to output
             utils.copy_odim_attributes(infile,outf)
@@ -679,8 +679,8 @@ def write_odim_motion_to_file(startdate, datasource, gen_output, nc_mot_fname=No
         return None
 
     #Write motion field in ODIM format
-    if PD["STORE_MOTION"]:
-        with h5py.File(os.path.join(PD["OUTPUT_PATH"], nc_mot_fname), 'w') as outf:
+    if PD["output_options"]["store_motion"]:
+        with h5py.File(os.path.join(PD["output_options"]["path"], nc_mot_fname), 'w') as outf:
 
             #TBD! Change from pix/s to m/s
             AMVU=motion_field[0]
@@ -741,8 +741,8 @@ def write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname=
     ensemble_forecast, ens_scale_meta = prepare_data_for_writing(ensemble_forecast)
 
     #Write ensemble forecast in ODIM format
-    if ensemble_forecast is not None and PD["STORE_ENSEMBLE"]:
-        with h5py.File(os.path.join(PD["OUTPUT_PATH"], nc_ens_fname), 'w') as outf:
+    if ensemble_forecast is not None and PD["output_options"]["store_ensemble"]:
+        with h5py.File(os.path.join(PD["output_options"]["path"], nc_ens_fname), 'w') as outf:
 
             #Copy attribute groups /what, /where and /how from input to output
             utils.copy_odim_attributes(infile,outf)

@@ -57,10 +57,6 @@ def get_config(override_name=None):
     # if params.get("NUM_TIMESTEPS", None) is None:
         # params.update(NUM_TIMESTEPS=int(params["MAX_LEADTIME"] / params["NOWCAST_TIMESTEP"]))
 
-    # Default to /tmp. Change default value in the future?
-    if params.get("OUTPUT_PATH", None) is None:
-        params.update(OUTPUT_PATH="/tmp")
-
     # Nowcast-method specific input checks
     if runopt.get("nowcast_method") in ["steps"]:
         # Timestep check
@@ -74,7 +70,6 @@ def get_config(override_name=None):
         if ncopt.get("kmperpixel", None) is None and ncopt.get("vel_pert_method") in ["bps"]:
             raise ValueError("Configuration error: kmperpixel is required")
 
-    params.update(OUTPUT_PATH=os.path.expanduser(params["OUTPUT_PATH"]))
     # Expand ~ in paths, if any
     params["data_source"]["root_path"] = os.path.expanduser(params["data_source"]["root_path"])
     params["output_options"]["path"] = os.path.expanduser(params["output_options"]["path"])
