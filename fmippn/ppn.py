@@ -608,7 +608,7 @@ def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_f
             #Copy attribute groups /what, /where and /how from input to output
             utils.copy_odim_attributes(infile,outf)
 
-	    # Write timeseries
+            # Write timeseries
             for index in range(deterministic.shape[0]):
                 timestep=PD["NOWCAST_TIMESTEP"]
                 dset_grp=outf.create_group(f"/dataset{index+1}")
@@ -731,7 +731,7 @@ def write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname=
             #Copy attribute groups /what, /where and /how from input to output
             utils.copy_odim_attributes(infile,outf)
 
-	    # Write timeseries
+            # Write timeseries
             for index in range(ensemble_forecast.shape[1]):
                 timestep=PD["NOWCAST_TIMESTEP"]
                 dset_grp=outf.create_group(f"/dataset{index+1}")
