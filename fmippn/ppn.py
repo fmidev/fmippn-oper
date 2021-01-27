@@ -83,7 +83,7 @@ def run(timestamp=None, config=None, **kwargs):
     input_files = get_filelist(startdate, datasource)
     observations, obs_metadata = read_observations(input_files, datasource, importer)
 
-    motion_field = optflow(observations)
+    motion_field = optflow(observations, **PD.get("motion_options", dict()))
 
     # Regenerate ensemble motion
     if run_options.get("regenerate_perturbed_motion"):
