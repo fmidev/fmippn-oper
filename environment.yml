@@ -1,4 +1,4 @@
-name: ppn
+name: ppn_pysteps14
 channels:
   - conda-forge
   - defaults
@@ -9,6 +9,6 @@ dependencies:
   - scipy
   - h5py
   - pillow
-  - pysteps>=1.2
+  - pysteps=1.4
   - dask
   - pyfftw

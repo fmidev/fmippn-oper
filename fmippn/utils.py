@@ -1,7 +1,7 @@
 """Utility functions for FMI-PPN"""
 import datetime as dt
-
 import numpy as np
+import h5py
 
 
 def utcnow_floored(increment=5):
@@ -64,3 +64,80 @@ def prepare_fct_for_saving(fct, scaler, scale_zero, store_dtype, store_nodata_va
     fct_scaled[nodata_mask] = store_nodata_value
     fct_scaled = fct_scaled.astype(store_dtype)
     return fct_scaled
+
+
+def copy_odim_attributes(infile,outf):
+    """Copy attribute groups /what, /where and /how from
+    input ODIM HDF5 file to output ODIM HDF5 file as they are.
+
+    Keyword arguments:
+    infile -- ODIM HDF5 input composite filename
+    outf -- FMI-PPN output HDF5 file object
+    """
+
+    inf=h5py.File(infile, 'r')
+
+    #Copy attribute groups /what, /where and /how
+    what=outf.create_group("what")
+    for key, val in inf["what"].attrs.items():
+         what.attrs[key] = val
+
+    where=outf.create_group("where")
+    for key, val in inf["where"].attrs.items():
+        where.attrs[key] = val
+
+    how=outf.create_group("how")
+    for key, val in inf["how"].attrs.items():
+        how.attrs[key] = val
+
+    inf.close()
+
+
+def store_odim_dset_attrs(dset_grp, dset_index, startdate, timestep):
+    """Store ODIM attributes to datasets. Each dataset
+    represents a different timestep.
+
+    Keyword arguments:
+    dset_grp -- dataset HDF5 group object
+    dset_index -- dataset number (dataset1, dataset2 etc), indicates number of timestep
+    startdate -- nowcast analysis time (datetime object)
+    timestep -- time difference between nowcast fields (int)
+    """
+
+    #Calculate valid time for each step
+    valid_time = startdate + (dset_index + 1) * dt.timedelta(minutes=timestep)
+
+    #Add attributes to each dataset
+    dset_how_grp=dset_grp.create_group("how")
+    dset_how_grp.attrs["simulated"]=True
+
+    dset_what_grp=dset_grp.create_group("what")
+    dset_what_grp.attrs["startdate"] = int(dt.datetime.strftime(valid_time, "%Y%m%d"))
+    dset_what_grp.attrs["enddate"] = int(dt.datetime.strftime(valid_time, "%Y%m%d"))
+    dset_what_grp.attrs["starttime"] = int(dt.datetime.strftime(valid_time, "%H%M%S"))
+    dset_what_grp.attrs["endtime"] = int(dt.datetime.strftime(valid_time, "%H%M%S"))
+
+
+def store_odim_data_what_attrs(data_grp,metadata,scale_meta):
+    """Store ODIM attributes to data/what group. Each data group (data1, data2 ...)
+    represents a different ensemble member.
+
+    Keyword arguments:
+    data_grp -- data HDF5 group object (data1, data2 ...)
+    metadata -- array containing FMIPPN output metadata
+    scale_meta -- scale values metadata
+    """
+
+    #Change quantity to ODIM format
+    quantity=metadata.get("unit","Unknown")
+    if quantity == "dBZ":
+        quantity="DBZH"
+    elif quantity == "rrate":
+        quantity="RATE"
+
+    #Create data/what group and store metadata
+    data_what_grp=data_grp.create_group("what")
+    data_what_grp.attrs["quantity"] = quantity
+    data_what_grp.attrs["gain"] = scale_meta.get("gain")
+    data_what_grp.attrs["offset"] = scale_meta.get("offset")
+    data_what_grp.attrs["nodata"] = scale_meta.get("nodata")
