@@ -80,7 +80,8 @@ def run(timestamp=None, config=None, **kwargs):
     run_options = PD["run_options"]
     print(run_options)
 
-    observations, obs_metadata = read_observations(startdate, datasource, importer)
+    input_files = get_filelist(startdate, datasource)
+    observations, obs_metadata = read_observations(input_files, datasource, importer)
 
     motion_field = optflow(observations)
 
@@ -294,10 +295,8 @@ def generate_pysteps_setup():
 
     return datasource, nowcast_kwargs
 
-def read_observations(startdate, datasource, importer):
-    """Read observations from archives using pysteps methods. Also threshold
-    the input data and (optionally) convert dBZ -> dBR based on configuration
-    parameters."""
+def get_filelist(startdate, datasource):
+    """Get a list of input file names"""
     try:
         filelist = pysteps.io.find_by_date(startdate,
                                            datasource["root_path"],
@@ -311,7 +310,12 @@ def read_observations(startdate, datasource, importer):
         log("error", f"OSError was raised: {error_msg}")
         # Re-raise so traceback is shown in stdout and program stops
         raise OSError(error_msg) from pysteps_error
+    return filelist
 
+def read_observations(filelist, datasource, importer):
+    """Read observations from archives using pysteps methods. Also threshold
+    the input data and (optionally) convert dBZ -> dBR based on configuration
+    parameters."""
     # PGM files contain dBZ values
     obs, _, metadata = pysteps.io.readers.read_timeseries(filelist,
                                                           importer,
