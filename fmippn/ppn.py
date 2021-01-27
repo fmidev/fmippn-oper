@@ -467,8 +467,8 @@ def prepare_data_for_writing(forecast):
     # Store data in integer format to save space (float64 -> uint16)
     store_dtype = 'uint16'
     store_nodata_value = np.iinfo(store_dtype).max if store_dtype.startswith('u') else -1
-    scaler = PD["SCALER"]
-    scale_zero = PD["SCALE_ZERO"]
+    scaler = PD["output_options"]["scaler"]
+    scale_zero = PD["output_options"]["scale_zero"]
     if scale_zero in [None, "auto"]:
         scale_zero = np.nanmin(forecast)
     prepared_forecast = utils.prepare_fct_for_saving(forecast, scaler, scale_zero,
