@@ -192,7 +192,7 @@ def importer_method(module="pysteps", **kwargs):
 
     Input:
         module -- parameter for if/else block (default="pysteps")
-        **kwargs -- additional keyword arguments passed to importer method
+        **kwargs -- additional keyword arguments passed to importer method getter
 
     Output:
         function -- a function object
@@ -211,7 +211,7 @@ def optflow_method(module="pysteps", **kwargs):
 
     Input:
         module -- parameter for if/else block (default="pysteps")
-        **kwargs -- additional keyword arguments passed to optical flow method
+        **kwargs -- additional keyword arguments passed to optical flow method getter
 
     Output:
         function -- a function object
@@ -230,7 +230,7 @@ def nowcast_method(module="pysteps", **kwargs):
 
     Input:
         module -- parameter for if/else block (default="pysteps")
-        **kwargs -- additional keyword arguments passed to nowcast method
+        **kwargs -- additional keyword arguments passed to nowcast method getter
 
     Output:
         function -- a function object
@@ -249,7 +249,7 @@ def deterministic_method(module="pysteps", **kwargs):
 
     Input:
         module -- parameter for if/else block (default="pysteps")
-        **kwargs -- additional keyword arguments passed to nowcast method
+        **kwargs -- additional keyword arguments passed to nowcast method getter
 
     Output:
         function -- a function object
