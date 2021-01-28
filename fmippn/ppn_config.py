@@ -57,6 +57,12 @@ def get_config(override_name=None):
     # if params.get("NUM_TIMESTEPS", None) is None:
         # params.update(NUM_TIMESTEPS=int(params["MAX_LEADTIME"] / params["NOWCAST_TIMESTEP"]))
 
+    # PGM-related checks
+    if ("pgm" in data.get("importer", "").lower() and
+            not params["output_options"].get("use_old_format", False)):
+        raise ValueError(("Cannot write ODIM-compliant output when input data is in .pgm format! "
+                         "Set 'output_options.use_old_format' to 'true'."))
+
     # Nowcast-method specific input checks
     if runopt.get("nowcast_method") in ["steps"]:
         # Timestep check
