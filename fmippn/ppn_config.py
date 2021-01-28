@@ -65,7 +65,12 @@ def get_config(override_name=None):
         if n is None:
             ncopt["timestep"] = d
         elif n != d:
-            raise ValueError()
+            error_msg_timestep_conflict = (
+                "Conflicting options for 'timestep' in 'data_sources' and 'nowcast_options': "
+                "{} and {}. If both are defined, they must be equal! (The parameter 'timestep' "
+                "in nowcast_method is the time step for motion vectors, not for leadtimes.)"
+            ).format(d, n)
+            raise ValueError(error_msg_timestep_conflict)
         # kmperpixel check
         if ncopt.get("kmperpixel", None) is None and ncopt.get("vel_pert_method") in ["bps"]:
             raise ValueError("Configuration error: kmperpixel is required")
