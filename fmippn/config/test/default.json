@@ -1,0 +1,21 @@
+{
+  "data_source": {
+    "root_path": "./input",
+    "path_fmt": "",
+    "fn_pattern": "%Y%m%d%H%M_radar.rack.comp_CONF=FMIPPN,ANDRE",
+    "fn_ext": "h5",
+    "importer": "odim_hdf5",
+    "timestep": 5,
+    "importer_kwargs": {"gzipped": false, "qty": "DBZH"}
+  },
+
+  "nowcast_options": {
+    "kmperpixel": 2.0,
+    "n_ens_members": 4
+  },
+
+  "output_options": {
+    "use_old_format": false,
+    "path": "./output"
+  }
+}

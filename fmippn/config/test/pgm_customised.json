@@ -1,0 +1,74 @@
+{
+  "data_source": {
+    "root_path": "./input",
+    "path_fmt": "",
+    "fn_pattern": "%Y%m%d%H%M_radar.rack.comp_CONF=FMIPPN,ANDRE",
+    "fn_ext": "pgm",
+    "importer": "fmi_pgm",
+    "timestep": 5,
+    "importer_kwargs": {"gzipped": false}
+  },
+
+  "data_options": {
+    "rain_threshold": 0
+  },
+
+  "motion_options": {},
+
+  "nowcast_options": {
+    "n_ens_members": 5,
+    "n_cascade_levels": 8,
+    "domain": "spectral",
+    "kmperpixel": 2.0,
+    "num_workers": 10,
+    "vel_pert_kwargs": {
+      "p_par": [
+        2.20837526,
+        0.33887032,
+        -2.48995355
+      ],
+      "p_perp": [
+        2.21722634,
+        0.32359621,
+        -2.57402761
+      ]
+    },
+    "seed": 1,
+    "extrap_method": "semilagrangian",
+    "noise_method": "nonparametric",
+    "ar_order": 2,
+    "mask_method": "incremental"
+  },
+
+  "run_options": {
+    "leadtimes": null,
+    "nowcast_timestep": 1,
+    "max_leadtime": 10,
+    "run_deterministic": true,
+    "run_ensemble": true,
+    "regenerate_perturbed_motion": true,
+    "num_prev_observations": 3,
+    "motion_method": "lucaskanade",
+    "nowcast_method": "steps",
+    "deterministic_method": "extrapolation",
+    "forecast_as_quantity": "DBZH",
+    "steps_set_no_rain_to_value": 0
+  },
+
+  "output_options": {
+    "path": "./output",
+    "scaler": 10,
+    "scale_zero": "auto",
+    "store_motion": true,
+    "store_perturbed_motion": true,
+    "store_ensemble": true,
+    "store_deterministic": true,
+    "as_quantity": "RATE"
+  },
+
+  "logging": {
+    "write_log": true,
+    "log_level": 10,
+    "log_folder": "./output/logs"
+  }
+}
