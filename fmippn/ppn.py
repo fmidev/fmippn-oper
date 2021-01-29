@@ -112,9 +112,11 @@ def run(timestamp=None, config=None, **kwargs):
     if run_options.get("run_ensemble"):
         ensemble_forecast, ens_meta = generate(observations, motion_field, nowcaster,
                                                nowcast_kwargs, metadata=obs_metadata)
+        PD["ensemble_size"] = ensemble_forecast.shape[0]
     else:
         ensemble_forecast = None
         ens_meta = dict()
+        PD["ensemble_size"] = None
 
     if run_options.get("run_deterministic"):
         deterministic, det_meta = generate_deterministic(observations[-1],
@@ -162,18 +164,13 @@ def run(timestamp=None, config=None, **kwargs):
 
     # FIXME: temporary hack to prevent crashes during saving the output
     # Remove these when the write_to_file function has been rewritten
-    PD["ENSEMBLE_SIZE"] = PD.get("nowcast_options").get("n_ens_members")
     if store_meta["seed"] is None:  # Cannot write None to HDF5
         del store_meta["seed"]
-    if "SEED" in PD:
-        del PD["SEED"]
 
     # WRITE OUTPUT TO A FILE
     if PD["output_options"].get("use_old_format", False):
         write_to_file(startdate, gen_output, nc_fname, store_meta)
     else:
-        # FIXME: Add new ODIM-style function here
-        print("Placeholder: Write using new format")
         # Test writing ODIM output
         nc_det_fname=None
         nc_ens_fname=None
@@ -491,6 +488,15 @@ def prepare_data_for_writing(forecast):
 
     return prepared_forecast, metadata
 
+# FIXME: This logic should be converted to use a list of leadtimes instead of assuming regular timestep
+def get_timesteps():
+    """Return the nowcast timestep if it is regular"""
+    runopt = PD["run_options"]
+    ts = runopt.get("nowcast_timestep")
+    if ts is None:
+        return PD["data_source"]["timestep"]
+    return ts
+
 def write_to_file(startdate, gen_output, nc_fname, metadata=None):
     """Write output to a HDF5 file.
 
@@ -515,14 +521,14 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
 
     output_options = PD["output_options"]
     # We don't support irregular nowcast outputs here
-    nowcast_timestep = PD["run_options"].get("nowcast_timestep", PD["data_source"]["timestep"])
+    nowcast_timestep = get_timesteps()
 
     ensemble_forecast, ens_scale_meta = prepare_data_for_writing(ensemble_forecast)
     deterministic, det_scale_meta = prepare_data_for_writing(deterministic)
 
     with h5py.File(os.path.join(output_options["path"], nc_fname), 'w') as outf:
         if ensemble_forecast is not None and output_options["store_ensemble"]:
-            for eidx in range(PD["ENSEMBLE_SIZE"]):
+            for eidx in range(PD["ensemble_size"]):
                 ens_grp = outf.create_group("member-{:0>2}".format(eidx))
                 utils.store_timeseries(ens_grp,
                                        ensemble_forecast[eidx, :, :, :],
@@ -531,7 +537,7 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
                                        metadata=ens_scale_meta)
 
         if ensemble_motion is not None and output_options["store_perturbed_motion"]:
-            for eidx in range(PD["ENSEMBLE_SIZE"]):
+            for eidx in range(PD["ensemble_size"]):
                 try:
                     ens_grp = outf["member-{:0>2}".format(eidx)]
                 except KeyError:
@@ -561,7 +567,7 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
         old_style_configs = {
             # Method selections
             #"DOMAIN": "fmi", # postprocessing defines this instead of reading it here
-            "VALUE_DOMAIN": PD["VALUE_DOMAIN"],  # Unused?
+            "VALUE_DOMAIN": "rrate" if PD["run_options"]["forecast_as_quantity"] == "RATE" else "dbz",  # Unused?
             # Z-R conversion parameters
             "ZR_A": PD["data_options"]["zr_a"],  #
             "ZR_B": PD["data_options"]["zr_b"],  #
@@ -637,8 +643,9 @@ def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_f
             utils.copy_odim_attributes(infile,outf)
 
             # Write timeseries
+            nowcast_timestep = get_timesteps()
             for index in range(deterministic.shape[0]):
-                timestep=PD["NOWCAST_TIMESTEP"]
+                timestep=nowcast_timestep
                 dset_grp=outf.create_group(f"/dataset{index+1}")
 
                 #Add attributes to each dataset
@@ -760,15 +767,16 @@ def write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname=
             utils.copy_odim_attributes(infile,outf)
 
             # Write timeseries
+            nowcast_timestep = get_timesteps()
             for index in range(ensemble_forecast.shape[1]):
-                timestep=PD["NOWCAST_TIMESTEP"]
+                timestep=nowcast_timestep
                 dset_grp=outf.create_group(f"/dataset{index+1}")
 
                 #Add attributes to each dataset
                 utils.store_odim_dset_attrs(dset_grp, index, startdate, timestep)
 
                 # Store ensemble members
-                for eidx in range(PD["ENSEMBLE_SIZE"]):
+                for eidx in range(PD["ensemble_size"]):
 
                     #Store data
                     ts_point = ensemble_forecast[eidx, index, :, :]

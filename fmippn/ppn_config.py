@@ -264,13 +264,14 @@ defaults = {
     "run_options": {
         "leadtimes": 12,  # int = number of timesteps, list of floats = forecast for these lead times
         # if leadtimes is not a list and nowcast_timestep != input timestep, use these to make it into one
-        "nowcast_timestep": 5, # optional, default to input timestep
+        "nowcast_timestep": None, # optional, default to input timestep
         "max_leadtime": 60, # optional, used only if "leadtimes" is None
         # What is calculated
         "run_deterministic": True,
         "run_ensemble": True,
         "regenerate_perturbed_motion": False,  # Re-calculate the perturbed motion fields used for pysteps nowcasting
-
+        #
+        "num_prev_observations": 3,
         # Methods
         "motion_method": "lucaskanade",
         "nowcast_method": "steps",
