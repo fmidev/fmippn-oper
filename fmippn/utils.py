@@ -85,6 +85,45 @@ def get_odim_attrs_from_input(infile):
         "how": how,
     }
 
+def get_odim_data_undetect(fname, quantity='DBZH'):
+    """
+
+    Input:
+        fname --
+        quantity -- (default: DBZH)
+
+    Output:
+        Value for 'undetect' pixels in actual units (using formula 'gain * undetect + offset')
+
+    Raises:
+        RuntimeError if value for 'undetect' cannot be found or is missing from attributes
+    """
+    # This assumes that there is only one 'dataset/data' group containing the wanted quantity
+    # TODO: Generalize if there can be more groups with the same quantity
+    attrs_list = []
+    def _append_attrs(name, obj):
+        """Append attribute dictionary to attrs_list (this abuses a SIDE EFFECT!)"""
+        if 'quantity' in obj.attrs:
+            attrs_list.append(dict(obj.attrs))
+        return None
+
+    # h5py.visititems goes through the file recursively
+    # it needs a callable with two arguments (name, obj)
+    # See h5py documentation for more
+    with h5py.File(fname, 'r') as f:
+        f.visititems(_append_attrs)
+
+    for attrs in attrs_list:
+        if attrs.get('quantity', b'').decode() == quantity:
+            und = attrs.get('undetect', None)
+            if und is None:
+                raise RuntimeError(f"'undetect' attribute is missing from {quantity} data attributes!")
+            gain = attrs.get('gain', 1.0)
+            offset = attrs.get('offset', 0.0)
+            return gain * und + offset
+
+    raise RuntimeError(f"Could not find 'undetect' value for {quantity} in file {fname}")
+
 def copy_odim_attributes(infile,outf):
     """Copy attribute groups /what, /where and /how from
     input ODIM HDF5 file to output ODIM HDF5 file as they are.

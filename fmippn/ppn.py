@@ -81,11 +81,19 @@ def run(timestamp=None, config=None, **kwargs):
 
     input_files = get_filelist(startdate, datasource)
 
-    if datasource["importer"] in ["opera_hdf5"]:
+    if datasource["importer"] in ["opera_hdf5", "odim_hdf5"]:
+        input_quantity = datasource["importer_kwargs"]["qty"]
         odim_metadata = utils.get_odim_attrs_from_input(input_files[0][-1])  # input_files is a tuple of two lists
+        data_undetect = utils.get_odim_data_undetect(input_files[0][-1],
+                                                     datasource['importer_kwargs']['qty'])
     else:
         # Cannot read ODIM metadata from non-ODIM files (.pgm)
         odim_metadata = None
+        data_undetect = -32
+        input_quantity = "DBZH"
+    PD["odim_metadata"] = odim_metadata
+    PD["data_undetect"] = data_undetect
+    PD["input_quantity"] = input_quantity
 
     observations, obs_metadata = read_observations(input_files, datasource, importer)
 
@@ -474,13 +482,13 @@ def prepare_data_for_writing(forecast):
     prepared_forecast = utils.prepare_fct_for_saving(forecast, scaler, scale_zero,
                                                      store_dtype, store_nodata_value)
 
-    # TBD! Add undetect to metadata once its read from input data
-    #undetect=scaler * (orig_undetect - scale_zero)
+    undetect = scaler * (PD["data_undetect"] - scale_zero)
 
     metadata = {
         "nodata": store_nodata_value,
         "gain": 1./scaler,
         "offset": scale_zero,
+        "undetect": undetect,
     }
 
     return prepared_forecast, metadata
