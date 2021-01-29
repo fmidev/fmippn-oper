@@ -60,8 +60,11 @@ def run(timestamp=None, config=None, **kwargs):
 
     # GENERAL SETUP
 
-    # generate suitable objects for passing to pysteps methods
-    datasource, nowcast_kwargs = generate_pysteps_setup()
+    # Paths, importers etc.
+    datasource = PD.get("data_source")
+    # NOTE: This is for backwards compability, can be removed at some point
+    if datasource is None:
+        datasource = pystepsrc["data_sources"][PD["DOMAIN"]]
 
     # Used methods
     importer = importer_method(name=datasource["importer"])
@@ -94,6 +97,10 @@ def run(timestamp=None, config=None, **kwargs):
     PD["odim_metadata"] = odim_metadata
     PD["data_undetect"] = data_undetect
     PD["input_quantity"] = input_quantity
+
+    # generate suitable objects for passing to pysteps methods
+    if PD["run_options"]["nowcast_method"] in ["steps"]:
+        nowcast_kwargs = generate_pysteps_setup()
 
     observations, obs_metadata = read_observations(input_files, datasource, importer)
 
@@ -274,30 +281,35 @@ def deterministic_method(module="pysteps", **kwargs):
     raise ValueError("Unknown module {} for deterministic method".format(module))
 
 def generate_pysteps_setup():
-    """Generate `datasource` and `nowcast_kwargs` objects that are suitable
+    """Generate `nowcast_kwargs` objects that are suitable
     for using in pysteps nowcasting methods."""
-    # Paths, importers etc.
-    datasource = PD.get("data_source")
-    # NOTE: This is for backwards compability, can be removed at some point
-    if datasource is None:
-        datasource = pystepsrc["data_sources"][PD["DOMAIN"]]
-    datasource["root_path"] = os.path.expanduser(datasource["root_path"])
-
     # kwargs for nowcasting method
     nowcast_kwargs = PD.get("nowcast_options")
 
     # This threshold is used in masking and probability masking
     # rrate units need to be transformed to decibel, so that comparisons can be done
-    r_thr = PD["data_options"]["rain_threshold"]
+    # Check if forecast is done for different quantity than input and convert if necessary
+    r_thr = PD["data_options"].get("rain_threshold")
+
+    fct_qty = PD["run_options"].get("forecast_as_quantity", PD["input_quantity"])
     log("debug", f"Using rain_threshold={r_thr} as prob. match threshold")
 
-    if PD["run_options"]["forecast_as_quantity"] in ["RATE", "rrate"]:
-        nowcast_kwargs["R_thr"] = 10.0 * np.log10(r_thr)
+    zr_a = PD["data_options"]["zr_a"]
+    zr_b = PD["data_options"]["zr_b"]
+
+    if PD["input_quantity"] in ["DBZH"] and fct_qty in ["rrate", "RATE"]:
+        r_thr = (r_thr / zr_a) ** (1. / zr_b)
+        nowcast_kwargs["R_thr"] = max(10.0 * np.log10(r_thr), 0)  #
         log("info", 'Converted RATE rain_threshold to decibel units ("dBR").')
+    elif PD["input_quantity"] in ["RATE"] and fct_qty in ["dbz", "DBZH"]:
+        r_thr = zr_a * r_thr ** zr_b
+        nowcast_kwargs["R_thr"] = r_thr
     else:
         nowcast_kwargs["R_thr"] = r_thr
 
-    return datasource, nowcast_kwargs
+    PD["converted_rain_thr"] = r_thr  # DBZH or non-decibel RATE is used in thresholding
+
+    return nowcast_kwargs
 
 def get_filelist(startdate, datasource):
     """Get a list of input file names"""
@@ -308,7 +320,7 @@ def get_filelist(startdate, datasource):
                                            datasource["fn_pattern"],
                                            datasource["fn_ext"],
                                            datasource["timestep"],
-                                           num_prev_files=PD["NUM_PREV_OBSERVATIONS"])
+                                           num_prev_files=PD["run_options"]["num_prev_observations"])
     except OSError as pysteps_error:
         error_msg = "Failed to read input data!"
         log("error", f"OSError was raised: {error_msg}")
@@ -325,13 +337,16 @@ def read_observations(filelist, datasource, importer):
                                                           importer,
                                                           **datasource["importer_kwargs"])
 
-    if PD["VALUE_DOMAIN"] == "rrate":
+    fct_qty = PD["run_options"].get("forecast_as_quantity", PD["input_quantity"])
+    if PD["input_quantity"] in ["DBZH"] and fct_qty in ["rrate", "RATE"]:
         obs, metadata = dbz_to_rrate(obs, metadata)
+    elif PD["input_quantity"] in ["RATE"] and fct_qty in ["dbz", "DBZH"]:
+        obs, metadata = rrate_to_dbz(obs, metadata)
 
-    obs, metadata = thresholding(obs, metadata, threshold=PD["RAIN_THRESHOLD"],
-                                 norain_value=PD["NORAIN_VALUE"])
+    obs, metadata = thresholding(obs, metadata, threshold=PD["converted_rain_thr"],
+                                 norain_value=PD["run_options"]["steps_set_no_rain_to_value"])
 
-    if PD["VALUE_DOMAIN"] == "rrate":
+    if fct_qty in ["RATE", "rrate"]:
         obs, metadata = transform_to_decibels(obs, metadata)
 
     return obs, metadata
@@ -398,16 +413,40 @@ def generate(observations, motion_field, nowcaster, nowcast_kwargs, metadata=Non
     else:
         meta = metadata
 
-    if PD["FIELD_VALUES"] == "dbz" and metadata["unit"] == "mm/h":
+    # FIXME: Logic is probably unnecessarily convoluted, needs simplifying and probably reordering
+    # TODO: Should probably move this to own function...
+    # Quantity conversion from calculation quantity to output quantity, if they are different
+    out_qty = PD["output_options"].get("as_quantity", None)
+    if out_qty is None:
+        out_qty = PD["input_quantity"]
+
+    if out_qty in ["dbz", "DBZH"] and metadata["unit"] == "mm/h":
         forecast, meta = rrate_to_dbz(forecast, meta)
 
-    if PD["FIELD_VALUES"] == "rrate" and metadata["unit"] == "dBZ":
+    elif out_qty in ["rrate", "RATE"] and metadata["unit"] == "dBZ":
         forecast, meta = dbz_to_rrate(forecast, meta)
 
-    log("debug", f"{metadata['unit']}")
-    norain_value = -32 if metadata["unit"] == "dBZ" else 0
-    forecast, meta = thresholding(forecast, meta, norain_value=norain_value, fill_nan=False)
+    # Set values under rain threshold to original undetect value
+    # But first, check that the units are correct and convert data_undetect to other units if needed
+    rain_threshold = PD["data_options"].get("rain_threshold")
+    norain_for_output = PD["data_undetect"]
+    if PD["input_quantity"] in ["dbz", "DBZH"] and out_qty in ["rrate", "RATE"]:
+        # R = (Z / zr_a) ** (1.0 / zr_b)
+        zr_a = PD["data_options"]["zr_a"]
+        zr_b = PD["data_options"]["zr_b"]
+        norain_for_output = (norain_for_output / zr_a) ** (1. / zr_b)
+        rain_threshold = (rain_threshold / zr_a) ** (1. / zr_b)
+    elif PD["input_quantity"] in ["rrate", "RATE"] and out_qty in ["dbz", "DBZH"]:
+        # Z = zr_a * R ** zr_b
+        zr_a = PD["data_options"]["zr_a"]
+        zr_b = PD["data_options"]["zr_b"]
+        norain_for_output = zr_a * norain_for_output ** zr_b
+        rain_threshold = zr_a * rain_threshold ** zr_b
 
+    forecast, meta = thresholding(forecast, meta, threshold=rain_threshold,
+                                  norain_value=norain_for_output, fill_nan=False)
+    PD["out_rain_threshold"] = rain_threshold
+    PD["out_norain_value"] = norain_for_output
     if meta is None:
         meta = dict()
     return forecast, meta
@@ -575,10 +614,10 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
             "NOWCAST_TIMESTEP": nowcast_timestep,  #
             "MAX_LEADTIME": PD["run_options"]["max_leadtime"],  #
             "NUM_TIMESTEPS": PD["run_options"]["leadtimes"],  #
-            "ENSEMBLE_SIZE": PD["ENSEMBLE_SIZE"],  #
+            "ENSEMBLE_SIZE": PD["ensemble_size"],  #
             "NUM_CASCADES": PD["nowcast_options"].get("n_cascade_levels", 6),  # Unused?
-            "RAIN_THRESHOLD": PD["RAIN_THRESHOLD"],  # Unused?
-            "NORAIN_VALUE": PD["NORAIN_VALUE"],  #
+            "RAIN_THRESHOLD": PD["out_rain_threshold"],  # Unused?
+            "NORAIN_VALUE": PD["out_norain_value"],  #
             "KMPERPIXEL": PD["nowcast_options"]["kmperpixel"],  # Unused?
             "CALCULATION_DOMAIN": PD["nowcast_options"]["domain"],  # Unused?
             "VEL_PERT_KWARGS": PD["nowcast_options"]["vel_pert_kwargs"],
