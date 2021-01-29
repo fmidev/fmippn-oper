@@ -53,10 +53,6 @@ def get_config(override_name=None):
     # Leadtimes generation
     _check_leadtime(params)
 
-    # # This parameter might not exists in configuration
-    # if params.get("NUM_TIMESTEPS", None) is None:
-        # params.update(NUM_TIMESTEPS=int(params["MAX_LEADTIME"] / params["NOWCAST_TIMESTEP"]))
-
     # PGM-related checks
     if ("pgm" in data.get("importer", "").lower() and
             not params["output_options"].get("use_old_format", False)):
@@ -281,26 +277,6 @@ defaults = {
         "forecast_as_quantity": "DBZH",  # Input data is converted to this before nowcasting
         "steps_set_no_rain_to_value": -10,  # In forecast quantity units
     },
-
-    # Method selections
-    "VALUE_DOMAIN": "dbz",  # dbz or rrate
-    # Nowcasting parameters
-    "NUM_PREV_OBSERVATIONS": 3,
-    "NOWCAST_TIMESTEP": 5,
-    "RAIN_THRESHOLD": 6.5,  # Roughly 0.1 mm/h using Z = 223 * R ** 1.53
-    "NORAIN_VALUE": 1.5,  # Threshold minus 5 (dB) units. Roughly 0.04 mm/h using above
-    # Motion perturbation parameters
-    # Set to VEL_PERT_KWARGS to `None` to use pysteps's default values
-    # Storing parameters
-    "FIELD_VALUES": "dbz",  # Store values as rrate or dbz
-    "OUTPUT_TIME_FORMAT": "%Y-%m-%d %H:%M:%S",
-    "STORE_ENSEMBLE": True, # Write each ensemble member to output
-    "STORE_DETERMINISTIC": True,  # Write det_fct to output
-    "STORE_MOTION": True, # Write deterministic motion to output
-    "STORE_PERTURBED_MOTION": True,  # Write motion for each ensemble member to output
-    "SCALER": 100,
-    "SCALE_ZERO": "auto",  # Value for "0" in scaled units. Set to "auto" or None for minimum value found before scaling
-
 }
 
 # Test cases
