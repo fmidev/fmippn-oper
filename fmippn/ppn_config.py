@@ -121,6 +121,7 @@ def _check_leadtime(params):
             raise ValueError("Need to set both 'max_leadtime' and 'nowcast_timestep' if 'leadtimes'"
                              " is not given")
         leadtimes = int(max_leadtime / nowcast_timestep)
+        runopt["leadtimes"] = leadtimes
 
     # leadtimes is given as number ("this many leadtimes"), check the input data timestep
     if isinstance(leadtimes, int):
