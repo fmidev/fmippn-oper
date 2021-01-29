@@ -199,9 +199,9 @@ def dump_defaults():
 defaults = {
     # Option groups in alphabetical order
     "data_options": {
-        "pgm_quantity": "dbz",  # Used for PGM, ODIM data should use "qty" in data_source.kwargs
         "zr_a": 223,
         "zr_b": 1.53,
+        "rain_threshold": 8,  # In data units
     },
 
     "data_source": {
@@ -274,7 +274,11 @@ defaults = {
         # Methods
         "motion_method": "lucaskanade",
         "nowcast_method": "steps",
-        "deterministic_method": "extrapolation"
+        "deterministic_method": "extrapolation",
+
+        #
+        "forecast_as_quantity": "DBZH",  # Input data is converted to this before nowcasting
+        "steps_set_no_rain_to_value": -10,  # In forecast quantity units
     },
 
     # Method selections

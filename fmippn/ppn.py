@@ -291,11 +291,12 @@ def generate_pysteps_setup():
 
     # This threshold is used in masking and probability masking
     # rrate units need to be transformed to decibel, so that comparisons can be done
-    r_thr = PD["RAIN_THRESHOLD"]
-    log("debug", f"Using RAIN_THRESHOLD {r_thr} value as prob. match threshold")
+    r_thr = PD["data_options"]["rain_threshold"]
+    log("debug", f"Using rain_threshold={r_thr} as prob. match threshold")
 
-    if PD["VALUE_DOMAIN"] == "rrate":
+    if PD["run_options"]["forecast_as_quantity"] in ["RATE", "rrate"]:
         nowcast_kwargs["R_thr"] = 10.0 * np.log10(r_thr)
+        log("info", 'Converted RATE rain_threshold to decibel units ("dBR").')
     else:
         nowcast_kwargs["R_thr"] = r_thr
 
@@ -378,12 +379,9 @@ def transform_to_decibels(data, metadata, inverse=False):
 
     return data, metadata
 
-def thresholding(data, metadata, threshold=None, norain_value=None, fill_nan=True):
-    if threshold is None:
-        threshold = PD["RAIN_THRESHOLD"]
-    if norain_value is None:
-        norain_value = PD["NORAIN_VALUE"]
-
+def thresholding(data, metadata, threshold, norain_value, fill_nan=True):
+    """Set values under 'threshold' to 'norain_value'. Optionally replace np.nan with 'norain_value'.
+    """
     if fill_nan:
         data[~np.isfinite(data)] = norain_value
     data[data < threshold] = norain_value
@@ -572,14 +570,14 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
             "MAX_LEADTIME": PD["run_options"]["max_leadtime"],  #
             "NUM_TIMESTEPS": PD["run_options"]["leadtimes"],  #
             "ENSEMBLE_SIZE": PD["ENSEMBLE_SIZE"],  #
-            "NUM_CASCADES": PD["nowcast_options"]["n_cascade_levels"],  # Unused?
+            "NUM_CASCADES": PD["nowcast_options"].get("n_cascade_levels", 6),  # Unused?
             "RAIN_THRESHOLD": PD["RAIN_THRESHOLD"],  # Unused?
             "NORAIN_VALUE": PD["NORAIN_VALUE"],  #
             "KMPERPIXEL": PD["nowcast_options"]["kmperpixel"],  # Unused?
             "CALCULATION_DOMAIN": PD["nowcast_options"]["domain"],  # Unused?
             "VEL_PERT_KWARGS": PD["nowcast_options"]["vel_pert_kwargs"],
             # Storing parameters
-            "FIELD_VALUES": PD["FIELD_VALUES"],  # Unused?
+            "FIELD_VALUES": PD["output_options"]["as_quantity"],  # Unused?
             "STORE_DETERMINISTIC": output_options["store_deterministic"],  #
             "STORE_PERTURBED_MOTION": output_options["store_perturbed_motion"],  #
         }
