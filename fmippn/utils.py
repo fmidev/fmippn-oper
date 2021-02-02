@@ -166,7 +166,7 @@ def store_odim_dset_attrs(dset_grp, dset_index, startdate, timestep):
 
     #Add attributes to each dataset
     dset_how_grp=dset_grp.create_group("how")
-    dset_how_grp.attrs["simulated"]=True
+    dset_how_grp.attrs["simulated"]="True"
 
     dset_what_grp=dset_grp.create_group("what")
     dset_what_grp.attrs["startdate"] = int(dt.datetime.strftime(valid_time, "%Y%m%d"))
