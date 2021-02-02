@@ -182,9 +182,9 @@ def run(timestamp=None, config=None, **kwargs):
         nc_det_fname=None
         nc_ens_fname=None
         nc_mot_fname=None
-        write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_fname, store_meta)
-        write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname, store_meta)
-        write_odim_motion_to_file(startdate, datasource, gen_output, nc_mot_fname, store_meta)
+        write_odim_deterministic_to_file(startdate, gen_output, nc_det_fname, store_meta)
+        write_odim_ensemble_to_file(startdate, gen_output, nc_ens_fname, store_meta)
+        write_odim_motion_to_file(startdate, gen_output, nc_mot_fname, store_meta)
 
     log("info", "Finished writing output to a file.")
     log("info", "Run complete. Exiting.")
@@ -638,7 +638,7 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
     return None
 
 
-def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_fname=None, metadata=None):
+def write_odim_deterministic_to_file(startdate, gen_output, nc_det_fname=None, metadata=None):
     """Write deterministic output in ODIM HDF5 format..
 
     Input:
@@ -652,16 +652,6 @@ def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_f
         metadata = dict()
 
     deterministic = gen_output.get("deterministic", None)
-
-    #Input filename
-    infile = pysteps.io.find_by_date(startdate,
-                                           datasource["root_path"],
-                                           datasource["path_fmt"],
-                                           datasource["fn_pattern"],
-                                           datasource["fn_ext"],
-                                           datasource["timestep"],
-                                           num_prev_files=0)[0][0]
-    print("infile",infile)
 
     #Output filename
     if nc_det_fname is None:
@@ -679,8 +669,9 @@ def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_f
         with h5py.File(os.path.join(PD["output_options"]["path"], nc_det_fname), 'w') as outf:
 
             #Copy attribute groups /what, /where and /how from input to output
-            utils.copy_odim_attributes(infile,outf)
-
+            #utils.copy_odim_attributes(infile,outf)
+            utils.copy_odim_attributes(PD["odim_metadata"],outf)
+            
             # Write timeseries
             nowcast_timestep = get_timesteps()
             for index in range(deterministic.shape[0]):
@@ -702,7 +693,7 @@ def write_odim_deterministic_to_file(startdate, datasource, gen_output, nc_det_f
 
 
 
-def write_odim_motion_to_file(startdate, datasource, gen_output, nc_mot_fname=None, metadata=None):
+def write_odim_motion_to_file(startdate, gen_output, nc_mot_fname=None, metadata=None):
     """Write motion field output in ODIM HDF5 format..
 
     Input:
@@ -716,16 +707,6 @@ def write_odim_motion_to_file(startdate, datasource, gen_output, nc_mot_fname=No
         metadata = dict()
 
     motion_field = gen_output.get("motion_field", None)
-
-    #Input filename
-    infile = pysteps.io.find_by_date(startdate,
-                                           datasource["root_path"],
-                                           datasource["path_fmt"],
-                                           datasource["fn_pattern"],
-                                           datasource["fn_ext"],
-                                           datasource["timestep"],
-                                           num_prev_files=0)[0][0]
-    print("infile",infile)
 
     #Output filename
     if nc_mot_fname is None:
@@ -745,24 +726,25 @@ def write_odim_motion_to_file(startdate, datasource, gen_output, nc_mot_fname=No
             AMVV=motion_field[1]
 
             #Write AMVU and AMVV datasets and add attributes
-            amvu_grp=outf.create_group("/dataset/data1")
+            amvu_grp=outf.create_group("/dataset1/data1")
             amvu_grp.create_dataset("data", data=AMVU)
             amvu_what_grp=amvu_grp.create_group("what")
             amvu_what_grp.attrs["quantity"]="AMVU"
 
-            amvv_grp=outf.create_group("/dataset/data2")
+            amvv_grp=outf.create_group("/dataset1/data2")
             amvv_grp.create_dataset("data", data=AMVV)
             amvv_what_grp=amvv_grp.create_group("what")
             amvv_what_grp.attrs["quantity"]="AMVV"
 
             #Copy attribute groups /what, /where and /how from input to output
-            utils.copy_odim_attributes(infile,outf)
+            #utils.copy_odim_attributes(infile,outf)
+            utils.copy_odim_attributes(PD["odim_metadata"],outf)
 
     return None
 
 
 
-def write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname=None, metadata=None):
+def write_odim_ensemble_to_file(startdate, gen_output, nc_ens_fname=None, metadata=None):
     """Write ensemble output in ODIM HDF5 format..
 
     Input:
@@ -776,16 +758,6 @@ def write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname=
         metadata = dict()
 
     ensemble_forecast = gen_output.get("ensemble_forecast", None)
-
-    #Input filename
-    infile = pysteps.io.find_by_date(startdate,
-                                           datasource["root_path"],
-                                           datasource["path_fmt"],
-                                           datasource["fn_pattern"],
-                                           datasource["fn_ext"],
-                                           datasource["timestep"],
-                                           num_prev_files=0)[0][0]
-    print("infile",infile)
 
     #Output filename
     if nc_ens_fname is None:
@@ -803,8 +775,9 @@ def write_odim_ensemble_to_file(startdate, datasource, gen_output, nc_ens_fname=
         with h5py.File(os.path.join(PD["output_options"]["path"], nc_ens_fname), 'w') as outf:
 
             #Copy attribute groups /what, /where and /how from input to output
-            utils.copy_odim_attributes(infile,outf)
-
+            #utils.copy_odim_attributes(infile,outf)
+            utils.copy_odim_attributes(PD["odim_metadata"],outf)
+            
             # Write timeseries
             nowcast_timestep = get_timesteps()
             for index in range(ensemble_forecast.shape[1]):

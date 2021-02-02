@@ -1,36 +1,73 @@
 {
-  "DOMAIN": "ravake_hdf5",
-  "NOWCAST_TIMESTEP": 5,
-  "MAX_LEADTIME": 60,
-  "ENSEMBLE_SIZE": 3,
-  "NUM_WORKERS": 10,
-  "GENERATE_UNPERTURBED": false,
-  "REGENERATE_PERTURBED_MOTION": false,
-  "GENERATE_DETERMINISTIC": true,
-  "OUTPUT_PATH": "/home/perttula/ppn_output/ravake_hdf5",
-  "STORE_MOTION": true,
-  "STORE_ENSEMBLE": true,
-  "STORE_DETERMINISTIC": true,
-  "SEED": 20190821,
-  "FIELD_VALUES": "dbz",
-  "VALUE_DOMAIN": "dbz",
-  "SCALER": 10,
-  "WRITE_LOG": true,
-  "LOG_LEVEL": 10,
-  "LOG_FOLDER": "/home/perttula/ppn_log",
-  "RAIN_THRESHOLD": -10,
-  "NORAIN_VALUE": -15,
-  "SCALE_ZERO": -32,
-  "VEL_PERT_KWARGS": {
-    "p_par": [
-      0,
-      0,
-      0
-    ],
-    "p_perp": [
-      0,
-      0,
-      0
-    ]
+  "data_source": {
+    "root_path": "/home/perttula/ppn_input",
+    "path_fmt": "",
+    "fn_pattern": "%Y%m%d%H%M_radar.rack.comp_CONF=FMIPPN,ANDRE",
+    "fn_ext": "h5",
+    "importer": "opera_hdf5",
+    "timestep": 5,
+    "importer_kwargs": {
+      "gzipped": false,
+      "qty": "DBZH"
+    }
+  },
+  "motion_options": {},
+  "data_options": {
+    "zr_a": 223.0,
+    "zr_b": 1.53,
+    "rain_threshold": -10
+  },
+  "output_options": {
+    "as_quantity": "DBZH",
+    "scaler": 10,
+    "scale_zero": -32,
+    "store_ensemble": true,
+    "store_deterministic": true,
+    "store_motion": true,
+    "store_perturbed_motion": true,
+    "use_old_format": false,
+    "path": "/home/perttula/ppn_output/ravake_hdf5"
+  },
+  "run_options": {
+    "leadtimes": null,
+    "nowcast_timestep": 5,
+    "num_prev_observations": 3,
+    "max_leadtime": 60,
+    "run_deterministic": true,
+    "run_ensemble": true,
+    "regenerate_perturbed_motion": false,
+    "motion_method": "lucaskanade",
+    "nowcast_method": "steps",
+    "deterministic_method": "extrapolation",
+    "forecast_as_quantity": "DBZH",
+    "steps_set_no_rain_to_value": -15
+  },
+  "nowcast_options": {
+    "kmperpixel": 2.0,
+    "timestep": 5,
+    "fft_method": "pyfftw",
+    "n_ens_members": 3,
+    "n_cascade_levels": 8,
+    "num_workers": 10,
+    "domain": "spectral",
+    "vel_pert_method": "bps",
+    "vel_pert_kwargs": {
+      "p_par": [
+        0,
+        0,
+        0
+      ],
+      "p_perp": [
+        0,
+        0,
+        0
+      ]
+    },
+    "seed": 20190821
+  },
+  "logging": {
+    "write_log": true,
+    "log_level": 10,
+    "log_folder": "/home/perttula/ppn_log"
   }
 }

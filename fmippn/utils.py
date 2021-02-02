@@ -124,32 +124,31 @@ def get_odim_data_undetect(fname, quantity='DBZH'):
 
     raise RuntimeError(f"Could not find 'undetect' value for {quantity} in file {fname}")
 
-def copy_odim_attributes(infile,outf):
+
+def copy_odim_attributes(odim_metadata,outf):
     """Copy attribute groups /what, /where and /how from
     input ODIM HDF5 file to output ODIM HDF5 file as they are.
 
     Keyword arguments:
-    infile -- ODIM HDF5 input composite filename
+    odim_metadata -- dictionary containing subdictionaries what, where 
+                     and how read from ODIM HDF5 input composite
     outf -- FMI-PPN output HDF5 file object
     """
-
-    inf=h5py.File(infile, 'r')
-
+    
     #Copy attribute groups /what, /where and /how
     what=outf.create_group("what")
-    for key, val in inf["what"].attrs.items():
-         what.attrs[key] = val
+    for key, val in odim_metadata["what"].items():
+        what.attrs[key] = val
 
     where=outf.create_group("where")
-    for key, val in inf["where"].attrs.items():
+    for key, val in odim_metadata["where"].items():
         where.attrs[key] = val
 
     how=outf.create_group("how")
-    for key, val in inf["how"].attrs.items():
+    for key, val in odim_metadata["how"].items():
         how.attrs[key] = val
-
-    inf.close()
-
+   
+    
 
 def store_odim_dset_attrs(dset_grp, dset_index, startdate, timestep):
     """Store ODIM attributes to datasets. Each dataset
@@ -199,3 +198,4 @@ def store_odim_data_what_attrs(data_grp,metadata,scale_meta):
     data_what_grp.attrs["gain"] = scale_meta.get("gain")
     data_what_grp.attrs["offset"] = scale_meta.get("offset")
     data_what_grp.attrs["nodata"] = scale_meta.get("nodata")
+    data_what_grp.attrs["undetect"] = scale_meta.get("undetect")
