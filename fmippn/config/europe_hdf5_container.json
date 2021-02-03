@@ -1,0 +1,73 @@
+{
+  "data_source": {
+    "root_path": "/input",
+    "path_fmt": "",
+    "fn_pattern": "T_PABH21_C_EUOC_%Y%m%d%H%M00",
+    "fn_ext": "hdf",
+    "importer": "opera_hdf5",
+    "timestep": 15,
+    "importer_kwargs": {
+      "gzipped": false,
+      "qty": "DBZH"
+    }
+  },
+  "motion_options": {},
+  "data_options": {
+    "zr_a": 223.0,
+    "zr_b": 1.53,
+    "rain_threshold": -10
+  },
+  "output_options": {
+    "as_quantity": "DBZH",
+    "scaler": 10,
+    "scale_zero": -32,
+    "store_ensemble": true,
+    "store_deterministic": true,
+    "store_motion": true,
+    "store_perturbed_motion": true,
+    "use_old_format": false,
+    "path": "/output"
+  },
+  "run_options": {
+    "leadtimes": null,
+    "nowcast_timestep": 15,
+    "num_prev_observations": 3,
+    "max_leadtime": 180,
+    "run_deterministic": true,
+    "run_ensemble": true,
+    "regenerate_perturbed_motion": false,
+    "motion_method": "lucaskanade",
+    "nowcast_method": "steps",
+    "deterministic_method": "extrapolation",
+    "forecast_as_quantity": "DBZH",
+    "steps_set_no_rain_to_value": -15
+  },
+  "nowcast_options": {
+    "kmperpixel": 2.0,
+    "timestep": 15,
+    "fft_method": "pyfftw",
+    "n_ens_members": 5,
+    "n_cascade_levels": 8,
+    "num_workers": 10,
+    "domain": "spectral",
+    "vel_pert_method": "bps",
+    "vel_pert_kwargs": {
+      "p_par": [
+        0,
+        0,
+        0
+      ],
+      "p_perp": [
+        0,
+        0,
+        0
+      ]
+    },
+    "seed": 20190821
+  },
+  "logging": {
+    "write_log": true,
+    "log_level": 10,
+    "log_folder": "/log"
+  }
+}
