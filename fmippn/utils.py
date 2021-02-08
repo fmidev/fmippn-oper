@@ -184,7 +184,7 @@ def store_odim_data_what_attrs(data_grp,metadata,scale_meta):
     metadata -- array containing FMIPPN output metadata
     scale_meta -- scale values metadata
     """
-
+    
     #Change quantity to ODIM format
     quantity=metadata.get("unit","Unknown")
     if quantity == "dBZ":
@@ -199,3 +199,4 @@ def store_odim_data_what_attrs(data_grp,metadata,scale_meta):
     data_what_grp.attrs["offset"] = scale_meta.get("offset")
     data_what_grp.attrs["nodata"] = scale_meta.get("nodata")
     data_what_grp.attrs["undetect"] = scale_meta.get("undetect")
+
