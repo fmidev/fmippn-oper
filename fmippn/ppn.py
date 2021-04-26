@@ -21,6 +21,7 @@ from pysteps import rcparams as pystepsrc
 import ppn_logger
 import ppn_config
 import utils
+import odim_io
 
 # Global object for storing and accessing configuration parameters
 PD = dict()
@@ -58,6 +59,7 @@ def run(timestamp=None, config=None, **kwargs):
 
     if nc_fname is None:
         nc_fname = "nc_{:%Y%m%d%H%M}.h5".format(startdate)
+        nc_fname_templ = "ppn_{date:%Y%m%d%H%M}_{tag}.h5"
 
     # GENERAL SETUP
 
@@ -82,6 +84,7 @@ def run(timestamp=None, config=None, **kwargs):
     time_at_start = dt.datetime.today()
 
     run_options = PD["run_options"]
+    output_options = PD["output_options"]
 
     input_files = get_filelist(startdate, datasource)
 
@@ -105,7 +108,27 @@ def run(timestamp=None, config=None, **kwargs):
 
     observations, obs_metadata = read_observations(input_files, datasource, importer)
 
+    if output_options.get("write_asap", False):
+        asap_meta = {
+            "projection": {
+                "projstr": obs_metadata["projection"],
+                "x1": obs_metadata["x1"],
+                "x2": obs_metadata["x2"],
+                "y1": obs_metadata["y1"],
+                "y2": obs_metadata["y2"],
+                "xpixelsize": obs_metadata["xpixelsize"],
+                "ypixelsize": obs_metadata["ypixelsize"],
+                "origin": "upper",
+            },
+    }
+
     motion_field = optflow(observations, **PD.get("motion_options", dict()))
+
+    if output_options.get("store_motion", False) and output_options.get("write_asap", False):
+        log("info", "write_asap requested, writing motion field now...")
+        nc_mot_fname = os.path.join(PD["output_options"]["path"],
+                                    nc_fname_templ.format(date=startdate, tag="motion"))
+        odim_io.write_motion_to_file(PD, motion_field, nc_mot_fname, metadata=asap_meta)
 
     # If seed is none, make a random seed.
     if PD["nowcast_options"].get("seed") is None:
@@ -118,26 +141,50 @@ def run(timestamp=None, config=None, **kwargs):
         log("info", "Regenerating ensemble motion fields...")
         ensemble_motion = regenerate_ensemble_motion(motion_field, nowcast_kwargs)
         log("info", "Finished regeneration.")
+        if output_options.get("store_perturbed_motion", False) and output_options.get("write_asap", False):
+            raise NotImplementedError
     else:
         ensemble_motion = None
-
-    if run_options.get("run_ensemble"):
-        ensemble_forecast, ens_meta = generate(observations, motion_field, nowcaster,
-                                               nowcast_kwargs, metadata=obs_metadata)
-        PD["ensemble_size"] = ensemble_forecast.shape[0]
-    else:
-        ensemble_forecast = None
-        ens_meta = dict()
-        PD["ensemble_size"] = None
 
     if run_options.get("run_deterministic"):
         deterministic, det_meta = generate_deterministic(observations[-1],
                                                          motion_field,
                                                          deterministic_nowcaster,
                                                          metadata=obs_metadata)
+        if output_options.get("store_deterministic", False) and output_options.get("write_asap", False):
+            log("info", "write_asap requested, writing deterministic nowcast now...")
+            _out, _out_meta = prepare_data_for_writing(deterministic)
+            nc_det_fname = os.path.join(PD["output_options"]["path"],
+                                        nc_fname_templ.format(date=startdate, tag="det"))
+            asap_meta["scale_meta"] = _out_meta
+            asap_meta["startdate"] = startdate
+            odim_io.write_deterministic_to_file(PD, deterministic, nc_det_fname, metadata=asap_meta)
+            # Release memory
+            deterministic = None
+            det_meta = dict()
     else:
         deterministic = None
         det_meta = dict()
+
+    if run_options.get("run_ensemble"):
+        ensemble_forecast, ens_meta = generate(observations, motion_field, nowcaster,
+                                               nowcast_kwargs, metadata=obs_metadata)
+        PD["ensemble_size"] = ensemble_forecast.shape[0]
+        if output_options.get("store_ensemble", False) and output_options.get("write_asap", False):
+            log("info", "write_asap requested, writing ensemble nowcast now...")
+            _out, _out_meta = prepare_data_for_writing(ensemble_forecast)
+            nc_ens_fname = os.path.join(PD["output_options"]["path"],
+                                        nc_fname_templ.format(date=startdate, tag="ens"))
+            asap_meta["scale_meta"] = _out_meta
+            asap_meta["startdate"] = startdate
+            odim_io.write_ensemble_to_file(PD, ensemble_forecast, nc_ens_fname, metadata=asap_meta)
+            # Release memory
+            ensemble_forecast = None
+            ens_meta = dict()
+    else:
+        ensemble_forecast = None
+        ens_meta = dict()
+        PD["ensemble_size"] = None
 
     time_at_end = dt.datetime.today()
     log("debug", "Finished nowcasting at %s" % time_at_end)
@@ -180,10 +227,14 @@ def run(timestamp=None, config=None, **kwargs):
         del store_meta["seed"]
 
     # WRITE OUTPUT TO A FILE
-    if PD["output_options"].get("use_old_format", False):
+    if PD["output_options"].get("write_asap", False):
+        # Output is already written, skip this
+        pass
+    elif PD["output_options"].get("use_old_format", False):
         write_to_file(startdate, gen_output, nc_fname, store_meta)
     else:
         # Test writing ODIM output
+        # TODO: Use new functions from odim_io.py
         nc_det_fname=None
         nc_ens_fname=None
         nc_mot_fname=None
@@ -484,10 +535,10 @@ def regenerate_ensemble_motion(motion_field, nowcast_kwargs):
         randgen_motion = []
         np.random.seed(seed)
         for _ in range(nowcast_kwargs["n_ens_members"]):
-            new_state = np.random.RandomState(seed)
+            new_state = np.random.RandomState(seed)  # pylint: disable=no-member
             randgen_prec.append(new_state)
             seed = new_state.randint(0, high=1e9)
-            new_state = np.random.RandomState(seed)
+            new_state = np.random.RandomState(seed)  # pylint: disable=no-member
             randgen_motion.append(new_state)
             seed = new_state.randint(0, high=1e9)
     # (copypaste ends here)
