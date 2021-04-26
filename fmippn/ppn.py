@@ -106,11 +106,11 @@ def run(timestamp=None, config=None, **kwargs):
     observations, obs_metadata = read_observations(input_files, datasource, importer)
 
     motion_field = optflow(observations, **PD.get("motion_options", dict()))
-    
+
     # If seed is none, make a random seed.
     if PD["nowcast_options"].get("seed") is None:
         PD["nowcast_options"]["seed"] = random.randrange(2**32-1)
-    
+
     # Regenerate ensemble motion
     if run_options.get("regenerate_perturbed_motion"):
         if PD["nowcast_options"].get("seed") is None:
@@ -652,7 +652,7 @@ def write_odim_deterministic_to_file(startdate, gen_output, nc_det_fname=None, m
         nc_det_fname -- filename for output deterministic HDF5 file
         metadata -- dictionary containing nowcast metadata (optional)
     """
-    
+
     if metadata is None:
         metadata = dict()
 
@@ -668,7 +668,7 @@ def write_odim_deterministic_to_file(startdate, gen_output, nc_det_fname=None, m
         return None
 
     deterministic, det_scale_meta = prepare_data_for_writing(deterministic)
-    
+
     #Write deterministic forecast in ODIM format
     if deterministic is not None and PD["output_options"]["store_deterministic"]:
         with h5py.File(os.path.join(PD["output_options"]["path"], nc_det_fname), 'w') as outf:
@@ -676,7 +676,7 @@ def write_odim_deterministic_to_file(startdate, gen_output, nc_det_fname=None, m
             #Copy attribute groups /what, /where and /how from input to output
             #utils.copy_odim_attributes(infile,outf)
             utils.copy_odim_attributes(PD["odim_metadata"],outf)
-            
+
             # Write timeseries
             nowcast_timestep = get_timesteps()
             for index in range(deterministic.shape[0]):
@@ -694,7 +694,7 @@ def write_odim_deterministic_to_file(startdate, gen_output, nc_det_fname=None, m
                 #Store data/what group attributes
                 utils.store_odim_data_what_attrs(data_grp,metadata,det_scale_meta)
 
-                #Store PPN specific metadata into /how group                                                                                         
+                #Store PPN specific metadata into /how group
                 how_grp=outf["how"]
                 how_grp.attrs["zr_a"] = PD["data_options"]["zr_a"]
                 how_grp.attrs["zr_b"] = PD["data_options"]["zr_b"]
@@ -704,7 +704,7 @@ def write_odim_deterministic_to_file(startdate, gen_output, nc_det_fname=None, m
                 how_grp.attrs["n_cascade_levels"] = PD["nowcast_options"].get("n_cascade_levels", 6)
                 how_grp.attrs["max_leadtime"] = PD["run_options"]["max_leadtime"]
 
-                
+
     return None
 
 
@@ -756,11 +756,11 @@ def write_odim_motion_to_file(startdate, gen_output, nc_mot_fname=None, metadata
             #utils.copy_odim_attributes(infile,outf)
             utils.copy_odim_attributes(PD["odim_metadata"],outf)
 
-            #Store PPN specific metadata into /how group                                                                                         
+            #Store PPN specific metadata into /how group
             how_grp=outf["how"]
             how_grp.attrs["domain"] = PD["nowcast_options"]["domain"]
             how_grp.attrs["n_cascade_levels"] = PD["nowcast_options"].get("n_cascade_levels", 6)
-            
+
     return None
 
 
@@ -790,7 +790,7 @@ def write_odim_ensemble_to_file(startdate, gen_output, nc_ens_fname=None, metada
         return None
 
     ensemble_forecast, ens_scale_meta = prepare_data_for_writing(ensemble_forecast)
-    
+
     #Write ensemble forecast in ODIM format
     if ensemble_forecast is not None and PD["output_options"]["store_ensemble"]:
         with h5py.File(os.path.join(PD["output_options"]["path"], nc_ens_fname), 'w') as outf:
@@ -798,7 +798,7 @@ def write_odim_ensemble_to_file(startdate, gen_output, nc_ens_fname=None, metada
             #Copy attribute groups /what, /where and /how from input to output
             #utils.copy_odim_attributes(infile,outf)
             utils.copy_odim_attributes(PD["odim_metadata"],outf)
-            
+
             # Write timeseries
             nowcast_timestep = get_timesteps()
             for index in range(ensemble_forecast.shape[1]):
@@ -830,7 +830,7 @@ def write_odim_ensemble_to_file(startdate, gen_output, nc_ens_fname=None, metada
                     how_grp.attrs["nowcast_timestep"] = timestep
                     how_grp.attrs["n_cascade_levels"] = PD["nowcast_options"].get("n_cascade_levels", 6)
                     how_grp.attrs["max_leadtime"] = PD["run_options"]["max_leadtime"]
-                    
+
     return None
 
 
