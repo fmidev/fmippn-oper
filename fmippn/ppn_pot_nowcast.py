@@ -15,6 +15,11 @@ import ppn_logger
 import ppn_config
 import utils
 
+from eccodes import *
+
+import matplotlib.pyplot as plt
+
+
 # Global object for storing and accessing configuration parameters
 PD = dict()
 
@@ -55,19 +60,49 @@ def run(timestamp=None, config=None, **kwargs):
 
     input_files = get_filelist(startdate, datasource)
 
-    #Korvaa tama Partion pygrib-koodilla!
-    observations, obs_metadata = read_observations(input_files, datasource, importer)
+    print('input_files:', input_files)
+        
+    # Read observations from grib files
+    observations=[]
+    for grib_file in input_files[0]:
+        print("grib_file:",grib_file)
+        temps, temps_min, temps_max, dtime, mask_nodata, nodata, longitudes, latitudes=read_grib(grib_file)
+        temps = temps[0,:,:]
+        print('temps_min_max:', temps_min, temps_max)
+        observations.append(temps)
 
+    observations = np.concatenate([temps[None, :, :] for temps in observations])
+    
+    #For vet only 2 or 3 observation fields can be used instead of 4 used by lucaskanade!
+    if PD["run_options"]["motion_method"] == "vet":
+        print("obs shape orig",observations.shape)
+        observations = observations[2:4]
+        print("obs shape new",observations.shape)
+        
+    print('observations:',observations)
+    print('min observations:',np.min(observations))
+    print('max observations',np.max(observations))
+    
     motion_field = optflow(observations, **PD.get("motion_options", dict()))
 
-    deterministic, det_meta = generate_deterministic(observations[-1],
-                                                         motion_field,
-                                                         deterministic_nowcaster,
-                                                         metadata=obs_metadata)
-
-    #Output kirjoitus tahan
+    print('motion_field:', motion_field)
+    print('motion_field min max', np.min(motion_field), np.max(motion_field))
     
+    deterministic_forecast = generate_deterministic(observations[-1], motion_field, deterministic_nowcaster)
 
+    print('deterministic_forecast:',deterministic_forecast)
+    print('deterministic_forecast.shape:',deterministic_forecast.shape)
+
+    for timestep in range(deterministic_forecast.shape[0]):
+        print(timestep)
+        fname = "testfig_timestep=" + str(timestep) + ".png"
+        data=deterministic_forecast[timestep,:,:]
+        plt.imshow(data,origin='lower')
+        plt.savefig(fname)
+        plt.show()
+
+
+        
 def get_filelist(startdate, datasource):
     """Get a list of input file names"""
     try:
@@ -86,16 +121,84 @@ def get_filelist(startdate, datasource):
     return filelist
 
 
-def generate_deterministic(observations, motion_field, nowcaster, nowcast_kwargs=None,
-                           metadata=None):
+def read_grib(image_grib_file,added_hours=0):
+
+    dtime = []
+    tempsl = []
+    latitudes = []
+    longitudes = []
+
+    with GribFile(image_grib_file) as grib:
+        for msg in grib:
+            ni = msg["Ni"]
+            nj = msg["Nj"]
+            forecast_time = dt.datetime.strptime("{:d}/{:02d}".format(msg["dataDate"], int(msg["dataTime"]/100)), "%Y%m%d/%H") + dt.timedelta(hours=msg["forecastTime"])
+            dtime.append(forecast_time)
+            tempsl.append(np.asarray(msg["values"]).reshape(nj, ni))
+            latitudes.append(np.asarray(msg["latitudes"]).reshape(nj, ni))
+            longitudes.append(np.asarray(msg["longitudes"]).reshape(nj, ni))
+    temps = np.asarray(tempsl)
+    latitudes = np.asarray(latitudes)
+    longitudes = np.asarray(longitudes)
+    latitudes = latitudes[0,:,:]
+    longitudes = longitudes[0,:,:]
+    nodata = 9999
+    mask_nodata = np.ma.masked_where(temps == nodata,temps)
+    if len(temps[np.where(~np.ma.getmask(mask_nodata))])>0:
+        temps_min = temps[np.where(~np.ma.getmask(mask_nodata))].min()
+        temps_max = temps[np.where(~np.ma.getmask(mask_nodata))].max()
+    else:
+        print("input " + image_grib_file + " contains only missing data!")
+        temps_min = nodata
+        temps_max = nodata
+    if type(dtime) == list:
+        dtime = [(i+dt.timedelta(hours=added_hours)) for i in dtime]
+    else:
+        dtime = dtime+dt.timedelta(hours=added_hours)
+    return temps, temps_min, temps_max, dtime, mask_nodata, nodata, longitudes, latitudes
+
+
+
+#def write_grib(interpolated_data,image_grib_file,write_grib_file,t_diff):
+#    # (Almost) all the metadata is copied from modeldata.grib2
+#    try:
+#        os.remove(write_grib_file)
+#    except OSError as e:
+#        pass
+#    if t_diff == None:
+#        t_diff = 0
+#    t_diff = int(t_diff)
+    # This edits each grib message individually
+#    with GribFile(image_grib_file) as grib:
+#        i=-1
+#        for msg in grib:
+#            msg["bitsPerValue"] = 24
+#            msg["dataTime"] = msg["dataTime"] + (t_diff*100)
+#            if msg["dataTime"] == 2400:
+#               msg["dataTime"] = 0
+#            msg["generatingProcessIdentifier"] = 202
+#            msg["centre"] = 86
+#            msg["bitmapPresent"] = True
+#            i = i+1 # msg["forecastTime"]
+#            if (i == interpolated_data.shape[0]):
+#                break
+#            msg["values"] = interpolated_data[i,:,:].flatten()
+#            with open(str(write_grib_file), "ab") as out:
+#                msg.write(out)
+
+
+
+
+def generate_deterministic(observations, motion_field, nowcaster, nowcast_kwargs=None):
     """Generate a deterministic nowcast using semilagrangian extrapolation"""
     # Extrapolation scheme doesn't use the same nowcast_kwargs as steps
     if nowcast_kwargs is None:
         nowcast_kwargs = dict()
-    forecast, meta = generate(observations, motion_field, nowcaster, nowcast_kwargs,
-                              metadata)
-    return forecast, meta
-
+        
+    forecast = nowcaster(observations, motion_field, PD["run_options"]["leadtimes"],
+                         **nowcast_kwargs)
+    
+    return forecast
 
 
 def prepare_data_for_writing(forecast):
@@ -123,6 +226,8 @@ def prepare_data_for_writing(forecast):
     }
 
     return prepared_forecast, metadata
+
+
 
 
 def get_timesteps():

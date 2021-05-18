@@ -105,6 +105,9 @@ def run(timestamp=None, config=None, **kwargs):
 
     observations, obs_metadata = read_observations(input_files, datasource, importer)
 
+    print("observations", observations)
+    print("min observations", np.min(observations))
+    print("max observations", np.max(observations))
     motion_field = optflow(observations, **PD.get("motion_options", dict()))
     
     # If seed is none, make a random seed.
