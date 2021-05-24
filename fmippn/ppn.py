@@ -158,8 +158,9 @@ def run(timestamp=None, config=None, **kwargs):
                                         nc_fname_templ.format(date=startdate, tag="det"))
             asap_meta["scale_meta"] = _out_meta
             asap_meta["startdate"] = startdate
-            odim_io.write_deterministic_to_file(PD, deterministic, nc_det_fname, metadata=asap_meta)
+            odim_io.write_deterministic_to_file(PD, _out, nc_det_fname, metadata=asap_meta)
             # Release memory
+            _out = None
             deterministic = None
             det_meta = dict()
     else:
@@ -177,8 +178,9 @@ def run(timestamp=None, config=None, **kwargs):
                                         nc_fname_templ.format(date=startdate, tag="ens"))
             asap_meta["scale_meta"] = _out_meta
             asap_meta["startdate"] = startdate
-            odim_io.write_ensemble_to_file(PD, ensemble_forecast, nc_ens_fname, metadata=asap_meta)
+            odim_io.write_ensemble_to_file(PD, _out, nc_ens_fname, metadata=asap_meta)
             # Release memory
+            _out = None
             ensemble_forecast = None
             ens_meta = dict()
     else:
