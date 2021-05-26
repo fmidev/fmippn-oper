@@ -574,7 +574,7 @@ def prepare_data_for_writing(forecast):
     prepared_forecast = utils.prepare_fct_for_saving(forecast, scaler, scale_zero,
                                                      store_dtype, store_nodata_value)
 
-    undetect = scaler * (PD["data_undetect"] - scale_zero)
+    undetect = scaler * (PD["out_norain_value"] - scale_zero)
 
     metadata = {
         "nodata": store_nodata_value,
