@@ -484,30 +484,53 @@ def generate(observations, motion_field, nowcaster, nowcast_kwargs, metadata=Non
     elif out_qty in ["rrate", "RATE"] and metadata["unit"] == "dBZ":
         forecast, meta = dbz_to_rrate(forecast, meta)
 
-    # Set values under rain threshold to original undetect value
-    # But first, check that the units are correct and convert data_undetect to other units if needed
-    rain_threshold = PD["data_options"].get("rain_threshold")
-    norain_for_output = PD["data_undetect"]
-    if PD["input_quantity"] in ["dbz", "DBZH"] and out_qty in ["rrate", "RATE"]:
-        # R = (Z / zr_a) ** (1.0 / zr_b)
-        zr_a = PD["data_options"]["zr_a"]
-        zr_b = PD["data_options"]["zr_b"]
-        norain_for_output = (norain_for_output / zr_a) ** (1. / zr_b)
-        rain_threshold = (rain_threshold / zr_a) ** (1. / zr_b)
-    elif PD["input_quantity"] in ["rrate", "RATE"] and out_qty in ["dbz", "DBZH"]:
-        # Z = zr_a * R ** zr_b
-        zr_a = PD["data_options"]["zr_a"]
-        zr_b = PD["data_options"]["zr_b"]
-        norain_for_output = zr_a * norain_for_output ** zr_b
-        rain_threshold = zr_a * rain_threshold ** zr_b
+    # Might need to convert the norain value and threshold, too
+    if "out_rain_threshold" not in PD:
+        _rain_threshold = PD["data_options"].get("rain_threshold")
+        PD["out_rain_threshold"] = _convert_for_output(_rain_threshold, out_qty)
+
+    if "out_norain_value" not in PD:
+        _norain = PD["output_options"].get("set_undetect_value_to", "input")
+        if _norain == "input":
+            _norain = PD["data_undetect"]
+            PD["out_norain_value"] = _convert_for_output(_norain, out_qty)
+        else:
+            PD["out_norain_value"] = _norain
+
+    rain_threshold = PD["out_rain_threshold"]
+    norain_for_output = PD["out_norain_value"]
 
     forecast, meta = thresholding(forecast, meta, threshold=rain_threshold,
                                   norain_value=norain_for_output, fill_nan=False)
-    PD["out_rain_threshold"] = rain_threshold
-    PD["out_norain_value"] = norain_for_output
+
     if meta is None:
         meta = dict()
     return forecast, meta
+
+def _convert_for_output(value, out_qty):
+    zr_a = PD["data_options"]["zr_a"]
+    zr_b = PD["data_options"]["zr_b"]
+    # Set values under rain threshold to original undetect value
+    # But first, check that the units are correct and convert data_undetect to other units if needed
+
+    in_qty = PD["input_quantity"]
+
+    if in_qty == out_qty:
+        pass
+
+    elif in_qty in ["dbz", "DBZH"] and out_qty in ["rrate", "RATE"]:
+        # Z = 10 ** (dBZ / 10)
+        value = 10 ** (value / 10)
+        # R = (Z / zr_a) ** (1.0 / zr_b)
+        value = (value / zr_a) ** (1. / zr_b)
+
+    elif in_qty in ["rrate", "RATE"] and out_qty in ["dbz", "DBZH"]:
+        # Z = zr_a * R ** zr_b
+        value = zr_a * value ** zr_b
+        # dBZ = 10 * log10(Z)
+        value = 10 * np.log10(value)
+
+    return value
 
 def generate_deterministic(observations, motion_field, nowcaster, nowcast_kwargs=None,
                            metadata=None):
