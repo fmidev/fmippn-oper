@@ -87,21 +87,37 @@ def run(timestamp=None, config=None, **kwargs):
 
     print('motion_field:', motion_field)
     print('motion_field min max', np.min(motion_field), np.max(motion_field))
-    
-    deterministic_forecast = generate_deterministic(observations[-1], motion_field, deterministic_nowcaster)
 
+    #Read POT field
+    last_obs_file = input_files[0][3]
+    obs_path = os.path.split(last_obs_file)[0]
+    obs_file = os.path.split(last_obs_file)[1]
+    pot_file = obs_path + '/pot_' + obs_file
+    print('pot_file',pot_file)
+
+    temps, temps_min, temps_max, dtime, mask_nodata, nodata, longitudes, latitudes=read_grib(pot_file)
+    pot_observations = temps[0,:,:]
+
+    #deterministic_forecast = generate_deterministic(observations[-1], motion_field, deterministic_nowcaster)
+    deterministic_forecast = generate_deterministic(pot_observations, motion_field, deterministic_nowcaster)
+    
     print('deterministic_forecast:',deterministic_forecast)
     print('deterministic_forecast.shape:',deterministic_forecast.shape)
 
-    for timestep in range(deterministic_forecast.shape[0]):
-        print(timestep)
-        fname = "testfig_timestep=" + str(timestep) + ".png"
-        data=deterministic_forecast[timestep,:,:]
-        plt.imshow(data,origin='lower')
-        plt.savefig(fname)
-        plt.show()
+#    for timestep in range(deterministic_forecast.shape[0]):
+#        print(timestep)
+#        fname = "testfig_timestep=" + str(timestep) + ".png"
+#        data=deterministic_forecast[timestep,:,:]
+#        plt.imshow(data,origin='upper')
+#        plt.savefig(fname)
+#        plt.show()
 
-
+    #Write deterministic forecast to grib file
+    if nc_fname is None:
+        nc_fname = "pot_nowcast_{:%Y%m%d%H%M}.grib2".format(startdate)
+        
+    write_grib(startdate,deterministic_forecast,pot_file,nc_fname)
+        
         
 def get_filelist(startdate, datasource):
     """Get a list of input file names"""
@@ -159,36 +175,43 @@ def read_grib(image_grib_file,added_hours=0):
 
 
 
-#def write_grib(interpolated_data,image_grib_file,write_grib_file,t_diff):
-#    # (Almost) all the metadata is copied from modeldata.grib2
-#    try:
-#        os.remove(write_grib_file)
-#    except OSError as e:
-#        pass
-#    if t_diff == None:
-#        t_diff = 0
-#    t_diff = int(t_diff)
-    # This edits each grib message individually
-#    with GribFile(image_grib_file) as grib:
-#        i=-1
-#        for msg in grib:
-#            msg["bitsPerValue"] = 24
-#            msg["dataTime"] = msg["dataTime"] + (t_diff*100)
-#            if msg["dataTime"] == 2400:
-#               msg["dataTime"] = 0
-#            msg["generatingProcessIdentifier"] = 202
-#            msg["centre"] = 86
-#            msg["bitmapPresent"] = True
-#            i = i+1 # msg["forecastTime"]
-#            if (i == interpolated_data.shape[0]):
-#                break
-#            msg["values"] = interpolated_data[i,:,:].flatten()
-#            with open(str(write_grib_file), "ab") as out:
-#                msg.write(out)
+def write_grib(startdate,deterministic_forecast,image_grib_file,nc_fname):
+    ''' (Almost) all the metadata is copied from modeldata.grib2
+     deterministic_forecast: tallennettava data
+     nc_fname: tiedostonimi
+    '''
+    try:
+        os.remove(nc_fname)
+    except OSError as e:
+        pass
 
+    # Loop through nowcast timesteps and copy metadata
+    # from input POT grib file
+    with GribFile(image_grib_file) as grib:
+        print("grib:",grib)
+        for msg in grib:
+            print("msg:",msg)
+            for i in range(deterministic_forecast.shape[0]):
+                timestep=PD["run_options"]["nowcast_timestep"]
+                valid_time = startdate + (i + 1) * dt.timedelta(minutes=timestep)
+                print("valid_time:",valid_time)
+                msg["bitsPerValue"] = 24
+                msg["dataDate"] = int(dt.datetime.strftime(valid_time, "%Y%m%d"))
+                msg["dataTime"] = int(dt.datetime.strftime(valid_time, "%H%M"))
+                msg["generatingProcessIdentifier"] = 202
+                msg["centre"] = 86
+                msg["bitmapPresent"] = True
+                msg["values"] = deterministic_forecast[i,:,:].flatten()
+                with open(str(nc_fname), "ab") as out:
+                    msg.write(out)
+                    
 
-
-
+def calc_datatime(i,nowcast_timestep):
+    tdiff_mins = i*int(nowcast_timestep)
+    tdiff_hours = int(tdiff_mins/60)
+    tdiff_mins = tdiff_mins % (tdiff_hours*60)
+    return f"{tdiff_hours:2d}{tdiff_mins:2d}"
+                    
 def generate_deterministic(observations, motion_field, nowcaster, nowcast_kwargs=None):
     """Generate a deterministic nowcast using semilagrangian extrapolation"""
     # Extrapolation scheme doesn't use the same nowcast_kwargs as steps
