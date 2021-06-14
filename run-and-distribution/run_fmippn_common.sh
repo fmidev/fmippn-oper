@@ -46,7 +46,7 @@ echo "$BeginStamp : BEGIN=preprocess domain=${DOMAIN} timestamp=$TIMESTAMP" >> $
 cd $PREPROCDIR
 PREPROC=run_preprocess_DOMAIN=${DOMAIN}.sh
 if [ -e $PREPROC ]; then
-#   . ./$PREPROC  >> $PREPROCLOG 2>&1
+   ./$PREPROC  >> $PREPROCLOG 2>&1
    if [ $? == $RECONFIG ]; then # preprocess insisted reconfiguration
        source $COMMONCONF  
    fi

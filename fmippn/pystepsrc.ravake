@@ -33,8 +33,8 @@
         },
 	// RAVAKE area composite, 1km resolution PGM
         "ravake": {
-            "root_path": "/dev/shm",
-            "path_fmt": "andre",
+            "root_path": "/mnt/meru/data/prod/radman",
+            "path_fmt": "latest/fmi/radar/composite/lowest",
             "fn_pattern": "%Y%m%d%H%M_fmi.radar.composite.lowest_FIN_RAVAKE",
             "fn_ext": "pgm",
             "importer": "fmi_pgm",

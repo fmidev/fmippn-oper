@@ -46,6 +46,8 @@ if [ $(($MINS % 60)) == 0 ]; then
       ACCPGM="$TIMES"_acc1h_suomi.pgm
       ACCPGM_TMP="$TIMES"_acc1h_suomi_tmp.pgm
       ACCTIF=${DISTRIBDIR}/${ACCPGM%.*}.tif
+      HSYACCTIF_ORIG=${DISTRIBDIR}/${TIMES}_PPN.tif
+      HSYACCTIF=${DISTRIBDIR}/${TIMES#*-}_PPN.tif
       ACCH5=${DISTRIBDIR}/${ACCPGM%.*}.h5
 
       SPGM=`ls -1 EnsmeanAcc_"$TIMESTAMP"-*+"$SM"_"$DOMAIN".pgm 2> /dev/null`
@@ -61,7 +63,11 @@ if [ $(($MINS % 60)) == 0 ]; then
       $RUNDIR/bin/replace_grey $ACCPGM_TMP $ACCPGM_MASKED 19270 65000 0
 
       $POSTPROCDIR/bin/reprojection_radardata --cfgfile=$CONFDIR/RAVAKE_3067.cfg --NoDataValue=65535 --obstime=$ENDTIME $ACCPGM_MASKED $ACCTIF $ACCH5
-      
+
+# HSYn pääkaupunkiseutu
+      $POSTPROCDIR/bin/reprojection_radardata --cfgfile=$CONFDIR/HSY_3067.cfg --NoDataValue=65535 --obstime=$ENDTIME $ACCPGM_MASKED $HSYACCTIF_ORIG
+#     scp $HSYACCTIF_ORIG fmi@dev.elmo.fmi.fi:"/smartmet/data/tutka/suomi/ppn/3067/tif/suomi_ppn_eureffin/${HSYACCTIF}" &
+
       if [ -e $ACCTIF ]; then
          echo "Copying $ACCTIF"
 #         cp $ACCTIF $DISTRIB_NFS 
