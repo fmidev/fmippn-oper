@@ -12,3 +12,7 @@ dependencies:
   - pysteps=1.4
   - dask
   - pyfftw
+  - eccodes
+  - pip
+  - pip:
+    - eccodes
