@@ -113,8 +113,12 @@ def get_odim_data_undetect(fname, quantity='DBZH'):
     with h5py.File(fname, 'r') as f:
         f.visititems(_append_attrs)
 
+    # h5py<=2.10 can store variable-length strings in attrs as bytes,
+    # while h5py>=3.0 stores them only as strings (fixed-length strings are stored as bytes)
+    # ODIM format specifies that they should be bytes, however not every file
+    quantity_as_bytes = quantity.encode()
     for attrs in attrs_list:
-        if attrs.get('quantity', b'').decode() == quantity:
+        if attrs.get('quantity', b'') in [quantity_as_bytes, quantity]:
             und = attrs.get('undetect', None)
             if und is None:
                 raise RuntimeError(f"'undetect' attribute is missing from {quantity} data attributes!")
@@ -130,11 +134,11 @@ def copy_odim_attributes(odim_metadata,outf):
     input ODIM HDF5 file to output ODIM HDF5 file as they are.
 
     Keyword arguments:
-    odim_metadata -- dictionary containing subdictionaries what, where 
+    odim_metadata -- dictionary containing subdictionaries what, where
                      and how read from ODIM HDF5 input composite
     outf -- FMI-PPN output HDF5 file object
     """
-    
+
     #Copy attribute groups /what, /where and /how
     what=outf.create_group("what")
     for key, val in odim_metadata["what"].items():
@@ -147,8 +151,8 @@ def copy_odim_attributes(odim_metadata,outf):
     how=outf.create_group("how")
     for key, val in odim_metadata["how"].items():
         how.attrs[key] = val
-   
-    
+
+
 
 def store_odim_dset_attrs(dset_grp, dset_index, startdate, timestep):
     """Store ODIM attributes to datasets. Each dataset
@@ -184,13 +188,15 @@ def store_odim_data_what_attrs(data_grp,metadata,scale_meta):
     metadata -- array containing FMIPPN output metadata
     scale_meta -- scale values metadata
     """
-    
-    #Change quantity to ODIM format
-    quantity=metadata.get("unit","Unknown")
-    if quantity == "dBZ":
+
+    # Deduce ODIM format quantity from units
+    unit = metadata.get("unit", "Unknown").lower()
+    if unit == "dbz":
         quantity="DBZH"
-    elif quantity == "rrate":
+    elif unit in ["rrate", "mm/h"]:
         quantity="RATE"
+    else:
+        quantity = "Unknown"
 
     #Create data/what group and store metadata
     data_what_grp=data_grp.create_group("what")
@@ -199,4 +205,3 @@ def store_odim_data_what_attrs(data_grp,metadata,scale_meta):
     data_what_grp.attrs["offset"] = scale_meta.get("offset")
     data_what_grp.attrs["nodata"] = scale_meta.get("nodata")
     data_what_grp.attrs["undetect"] = scale_meta.get("undetect")
-
