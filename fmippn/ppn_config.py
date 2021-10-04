@@ -253,7 +253,7 @@ defaults = {
         "scaler": 10,
         "scale_zero": "auto",
         "set_undetect_value_to": "input", # a number or "input". input == read from input (units converted if needed)
-        # TODO: Implement callback
+        #
         "write_leadtimes_separately": False, # Store each leadtime after calculating it instead of everything at the end
 
         "use_old_format": False,  # Remove when postprocessing can use ODIM format

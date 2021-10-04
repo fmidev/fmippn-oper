@@ -172,7 +172,10 @@ def run(timestamp=None, config=None, **kwargs):
         ensemble_forecast, ens_meta = generate(observations, motion_field, nowcaster,
                                                nowcast_kwargs, metadata=obs_metadata)
         PD["ensemble_size"] = ensemble_forecast.shape[0]
-        if output_options.get("store_ensemble", False) and output_options.get("write_asap", False):
+        if output_options.get("write_leadtimes_separately", False):
+            log("debug", "Callback was requested, will skip saving regardless of settings")
+            pass
+        elif output_options.get("store_ensemble", False) and output_options.get("write_asap", False):
             log("info", "write_asap requested, writing ensemble nowcast now...")
             _out, _out_meta = prepare_data_for_writing(ensemble_forecast)
             nc_ens_fname = os.path.join(PD["output_options"]["path"],
@@ -243,7 +246,8 @@ def run(timestamp=None, config=None, **kwargs):
         nc_ens_fname=None
         nc_mot_fname=None
         write_odim_deterministic_to_file(startdate, gen_output, nc_det_fname, store_meta)
-        write_odim_ensemble_to_file(startdate, gen_output, nc_ens_fname, store_meta)
+        if not PD["output_options"].get("write_leadtimes_separately", False):
+            write_odim_ensemble_to_file(startdate, gen_output, nc_ens_fname, store_meta)
         write_odim_motion_to_file(startdate, gen_output, nc_mot_fname, store_meta)
 
     log("info", "Finished writing output to a file.")
@@ -368,6 +372,9 @@ def generate_pysteps_setup():
         nowcast_kwargs["R_thr"] = r_thr
 
     PD["converted_rain_thr"] = r_thr  # DBZH or non-decibel RATE is used in thresholding
+
+    if PD["output_options"].get("write_leadtimes_separately", False):
+        nowcast_kwargs["callback"] = cb_nowcast
 
     return nowcast_kwargs
 
@@ -911,8 +918,18 @@ def write_odim_ensemble_to_file(startdate, gen_output, nc_ens_fname=None, metada
 
     return None
 
+# TODO: Add something to identify the ensemble member
+def cb_nowcast(field):
+    """Callback function for pysteps.
 
-
+    Store the calculated field to its own hdf5 file.
+    """
+    timestamp = dt.datetime.utcnow()
+    folder = os.path.join(PD["output_options"]["path"], 'tmp')
+    os.makedirs(folder, exist_ok=True)
+    fname = os.path.join(folder, f"{timestamp:%Y%m%d%H%M%S}.h5")
+    with h5py.File(fname, 'w') as f:
+        f.create_dataset('data', data=field)
 
 
 if __name__ == '__main__':
