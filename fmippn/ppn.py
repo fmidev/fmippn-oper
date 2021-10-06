@@ -75,14 +75,6 @@ def run(timestamp=None, config=None, **kwargs):
     nowcaster = nowcast_method("pysteps")
     deterministic_nowcaster = deterministic_method("pysteps")
 
-    log("debug", "Setup finished")
-
-    # NOWCASTING
-
-    log("info", "Generating nowcasts, starting from %s" % (startdate))
-
-    time_at_start = dt.datetime.today()
-
     # Option groups from configuration
     run_options = PD["run_options"]
     output_options = PD["output_options"]
@@ -91,6 +83,14 @@ def run(timestamp=None, config=None, **kwargs):
     motion_output_fname = os.path.join(output_options["path"], nc_fname_templ.format(date=startdate, tag="motion"))
     ensemble_output_fname = os.path.join(output_options["path"], nc_fname_templ.format(date=startdate, tag="ens"))
     determ_output_fname = os.path.join(output_options["path"], nc_fname_templ.format(date=startdate, tag="det"))
+
+    log("debug", "Setup finished")
+
+    # NOWCASTING
+
+    log("info", "Generating nowcasts, starting from %s" % (startdate))
+
+    time_at_start = dt.datetime.today()
 
     # Observation data input
     input_files = get_filelist(startdate, datasource)
