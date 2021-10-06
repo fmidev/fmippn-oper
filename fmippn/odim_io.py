@@ -69,7 +69,7 @@ def _write(data, filename, metadata, configuration, optype=None):
         print("Nothing to store")
         return None
 
-    if optype not in ["det", "ens", "mot"]:
+    if optype not in {"det", "ens", "mot"}:
         print("Missing logic for this optype:", optype)
         return None
 
@@ -79,7 +79,7 @@ def _write(data, filename, metadata, configuration, optype=None):
         metadata = metadata.copy()  # Do not modify original
 
     # Variables needed for nowcasts
-    if optype in ["det", "ens"]:
+    if optype in {"det", "ens"}:
         nowcast_timestep = get_timesteps(configuration)
         scale_meta = metadata.get("scale_meta", dict())
 

@@ -88,11 +88,10 @@ def run(timestamp=None, config=None, **kwargs):
 
     input_files = get_filelist(startdate, datasource)
 
-    if datasource["importer"] in ["opera_hdf5", "odim_hdf5"]:
+    if datasource["importer"] in {"opera_hdf5", "odim_hdf5"}:
         input_quantity = datasource["importer_kwargs"]["qty"]
         odim_metadata = utils.get_odim_attrs_from_input(input_files[0][-1])  # input_files is a tuple of two lists
-        data_undetect = utils.get_odim_data_undetect(input_files[0][-1],
-                                                     datasource['importer_kwargs']['qty'])
+        data_undetect = utils.get_odim_data_undetect(input_files[0][-1], input_quantity)
     else:
         # Cannot read ODIM metadata from non-ODIM files (.pgm)
         odim_metadata = None
@@ -122,7 +121,10 @@ def run(timestamp=None, config=None, **kwargs):
             },
     }
 
+    # pysteps returns motion field in units of pixel/timestep
     motion_field = optflow(observations, **PD.get("motion_options", dict()))
+
+    # TODO: Convert motion field timestep, if needed?
 
     if output_options.get("store_motion", False) and output_options.get("write_asap", False):
         log("info", "write_asap requested, writing motion field now...")
@@ -355,17 +357,18 @@ def generate_pysteps_setup():
     # Check if forecast is done for different quantity than input and convert if necessary
     r_thr = PD["data_options"].get("rain_threshold")
 
-    fct_qty = PD["run_options"].get("forecast_as_quantity", PD["input_quantity"])
+    input_qty = PD["input_quantity"]
+    fct_qty = PD["run_options"].get("forecast_as_quantity", input_qty)
     log("debug", f"Using rain_threshold={r_thr} as prob. match threshold")
 
     zr_a = PD["data_options"]["zr_a"]
     zr_b = PD["data_options"]["zr_b"]
 
-    if PD["input_quantity"] in ["DBZH"] and fct_qty in ["rrate", "RATE"]:
+    if utils.quantity_is_dbzh(input_qty) and utils.quantity_is_rate(fct_qty):
         r_thr = (r_thr / zr_a) ** (1. / zr_b)
         nowcast_kwargs["R_thr"] = max(10.0 * np.log10(r_thr), 0)  #
         log("info", 'Converted RATE rain_threshold to decibel units ("dBR").')
-    elif PD["input_quantity"] in ["RATE"] and fct_qty in ["dbz", "DBZH"]:
+    elif utils.quantity_is_rate(input_qty) and utils.quantity_is_dbzh(fct_qty):
         r_thr = zr_a * r_thr ** zr_b
         nowcast_kwargs["R_thr"] = r_thr
     else:
@@ -404,16 +407,18 @@ def read_observations(filelist, datasource, importer):
                                                           importer,
                                                           **datasource["importer_kwargs"])
 
-    fct_qty = PD["run_options"].get("forecast_as_quantity", PD["input_quantity"])
-    if PD["input_quantity"] in ["DBZH"] and fct_qty in ["rrate", "RATE"]:
+    input_qty = PD["input_quantity"]
+    fct_qty = PD["run_options"].get("forecast_as_quantity", input_qty)
+
+    if utils.quantity_is_dbzh(input_qty) and utils.quantity_is_rate(fct_qty):
         obs, metadata = dbz_to_rrate(obs, metadata)
-    elif PD["input_quantity"] in ["RATE"] and fct_qty in ["dbz", "DBZH"]:
+    elif utils.quantity_is_rate(input_qty) and utils.quantity_is_dbzh(fct_qty):
         obs, metadata = rrate_to_dbz(obs, metadata)
 
     obs, metadata = thresholding(obs, metadata, threshold=PD["converted_rain_thr"],
                                  norain_value=PD["run_options"]["steps_set_no_rain_to_value"])
 
-    if fct_qty in ["RATE", "rrate"]:
+    if utils.quantity_is_rate(fct_qty):
         obs, metadata = transform_to_decibels(obs, metadata)
 
     return obs, metadata
@@ -487,10 +492,10 @@ def generate(observations, motion_field, nowcaster, nowcast_kwargs, metadata=Non
     if out_qty is None:
         out_qty = PD["input_quantity"]
 
-    if out_qty in ["dbz", "DBZH"] and metadata["unit"] == "mm/h":
+    if utils.quantity_is_dbzh(out_qty) and metadata["unit"] == "mm/h":
         forecast, meta = rrate_to_dbz(forecast, meta)
 
-    elif out_qty in ["rrate", "RATE"] and metadata["unit"] == "dBZ":
+    elif utils.quantity_is_rate(out_qty) and metadata["unit"] == "dBZ":
         forecast, meta = dbz_to_rrate(forecast, meta)
 
     # Might need to convert the norain value and threshold, too
@@ -527,13 +532,13 @@ def _convert_for_output(value, out_qty):
     if in_qty == out_qty:
         pass
 
-    elif in_qty in ["dbz", "DBZH"] and out_qty in ["rrate", "RATE"]:
+    elif utils.quantity_is_dbzh(in_qty) and utils.quantity_is_rate(out_qty):
         # Z = 10 ** (dBZ / 10)
         value = 10 ** (value / 10)
         # R = (Z / zr_a) ** (1.0 / zr_b)
         value = (value / zr_a) ** (1. / zr_b)
 
-    elif in_qty in ["rrate", "RATE"] and out_qty in ["dbz", "DBZH"]:
+    elif utils.quantity_is_rate(in_qty) and utils.quantity_is_dbzh(out_qty):
         # Z = zr_a * R ** zr_b
         value = zr_a * value ** zr_b
         # dBZ = 10 * log10(Z)

@@ -3,6 +3,21 @@ import datetime as dt
 import numpy as np
 import h5py
 
+def pack_value(original_value, scale_factor, add_offset):
+    # scale_factor == gain, add_offset == offset
+    packed = (original_value - add_offset) / scale_factor
+    return packed
+
+def unpack_value(packed_value, scale_factor, add_offset):
+    # scale_factor == gain == 1./scaler, add_offset == offset == scale_zero
+    original = scale_factor * packed_value + add_offset
+    return original
+
+def quantity_is_dbzh(quantity):
+    return quantity in {"DBZH", "dbz"}
+
+def quantity_is_rate(quantity):
+    return quantity in {"RATE", "rrate"}
 
 def utcnow_floored(increment=5):
     """Return UTC time with minutes replaced by latest multiple of `increment`."""
@@ -118,13 +133,13 @@ def get_odim_data_undetect(fname, quantity='DBZH'):
     # ODIM format specifies that they should be bytes, however not every file
     quantity_as_bytes = quantity.encode()
     for attrs in attrs_list:
-        if attrs.get('quantity', b'') in [quantity_as_bytes, quantity]:
+        if attrs.get('quantity', b'') in {quantity_as_bytes, quantity}:
             und = attrs.get('undetect', None)
             if und is None:
                 raise RuntimeError(f"'undetect' attribute is missing from {quantity} data attributes!")
             gain = attrs.get('gain', 1.0)
             offset = attrs.get('offset', 0.0)
-            return gain * und + offset
+            return unpack_value(und, gain, offset)
 
     raise RuntimeError(f"Could not find 'undetect' value for {quantity} in file {fname}")
 
@@ -193,7 +208,7 @@ def store_odim_data_what_attrs(data_grp,metadata,scale_meta):
     unit = metadata.get("unit", "Unknown").lower()
     if unit == "dbz":
         quantity="DBZH"
-    elif unit in ["rrate", "mm/h"]:
+    elif unit in {"rrate", "mm/h"}:
         quantity="RATE"
     else:
         quantity = "Unknown"
