@@ -236,15 +236,18 @@ def run(timestamp=None, config=None, **kwargs):
     elif output_options.get("use_old_format", False):
         write_to_file(startdate, gen_output, nc_fname, store_meta)
     else:
-        # Test writing ODIM output
-        # TODO: Use new functions from odim_io.py
-        nc_det_fname=None
-        nc_ens_fname=None
-        nc_mot_fname=None
-        write_odim_deterministic_to_file(startdate, gen_output, nc_det_fname, store_meta)
-        if not PD["output_options"].get("write_leadtimes_separately", False):
-            write_odim_ensemble_to_file(startdate, gen_output, nc_ens_fname, store_meta)
-        write_odim_motion_to_file(startdate, gen_output, nc_mot_fname, store_meta)
+        if output_options.get("store_motion"):
+            # Motion needs only projection information
+            motion_meta = {
+                "projection": projection_meta,
+            }
+            odim_io.write_motion_to_file(PD, motion_field, motion_output_fname, metadata=motion_meta)
+        if output_options.get("store_ensemble") and not output_options.get("write_leadtimes_separately"):
+            odim_io.write_ensemble_to_file(PD, ensemble_forecast, ensemble_output_fname, metadata=store_meta)
+        if output_options.get("store_deterministic"):
+            odim_io.write_deterministic_to_file(PD, deterministic, determ_output_fname, metadata=store_meta)
+        if output_options.get("store_perturbed_motion"):
+            pass
 
     log("info", "Finished writing output to a file.")
     log("info", "Run complete. Exiting.")
@@ -701,197 +704,6 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
         proj_meta = meta.create_group("projection")
         for key, value in metadata["projection"].items():
             proj_meta.attrs[key] = value
-
-    return None
-
-
-def write_odim_deterministic_to_file(startdate, gen_output, nc_det_fname=None, metadata=None):
-    """Write deterministic output in ODIM HDF5 format..
-
-    Input:
-        startdate -- nowcast analysis time (datetime object)
-        gen_output -- dictionary containing generated nowcasts
-        nc_det_fname -- filename for output deterministic HDF5 file
-        metadata -- dictionary containing nowcast metadata (optional)
-    """
-
-    if metadata is None:
-        metadata = dict()
-
-    deterministic = gen_output.get("deterministic", None)
-
-    #Output filename
-    if nc_det_fname is None:
-        nc_det_fname = "nc_det_{:%Y%m%d%H%M}.h5".format(startdate)
-
-    if all((dataset is None for dataset in gen_output.values())):
-        print("Nothing to store")
-        log("warning", "Nothing to store into .h5 file. Skipping.")
-        return None
-
-    deterministic, det_scale_meta = prepare_data_for_writing(deterministic)
-
-    #Write deterministic forecast in ODIM format
-    if deterministic is not None and PD["output_options"]["store_deterministic"]:
-        with h5py.File(os.path.join(PD["output_options"]["path"], nc_det_fname), 'w') as outf:
-
-            #Copy attribute groups /what, /where and /how from input to output
-            #utils.copy_odim_attributes(infile,outf)
-            utils.copy_odim_attributes(PD["odim_metadata"],outf)
-
-            # Write timeseries
-            nowcast_timestep = get_timesteps()
-            for index in range(deterministic.shape[0]):
-                timestep=nowcast_timestep
-                dset_grp=outf.create_group(f"/dataset{index+1}")
-
-                #Add attributes to each dataset
-                utils.store_odim_dset_attrs(dset_grp, index, startdate, timestep)
-
-                #Store data
-                ts_point = deterministic[index, :, :]
-                data_grp=dset_grp.create_group("data1")
-                data_grp.create_dataset("data",data=ts_point)
-
-                #Store data/what group attributes
-                utils.store_odim_data_what_attrs(data_grp,metadata,det_scale_meta)
-
-                #Store PPN specific metadata into /how group
-                how_grp=outf["how"]
-                how_grp.attrs["zr_a"] = PD["data_options"]["zr_a"]
-                how_grp.attrs["zr_b"] = PD["data_options"]["zr_b"]
-                how_grp.attrs["domain"] = PD["nowcast_options"]["domain"]
-                how_grp.attrs["num_timesteps"] = PD["run_options"]["leadtimes"]
-                how_grp.attrs["nowcast_timestep"] = timestep
-                how_grp.attrs["n_cascade_levels"] = PD["nowcast_options"].get("n_cascade_levels", 6)
-                how_grp.attrs["max_leadtime"] = PD["run_options"]["max_leadtime"]
-
-
-    return None
-
-
-
-def write_odim_motion_to_file(startdate, gen_output, nc_mot_fname=None, metadata=None):
-    """Write motion field output in ODIM HDF5 format..
-
-    Input:
-        startdate -- nowcast analysis time (datetime object)
-        gen_output -- dictionary containing generated nowcasts
-        nc_mot_fname -- filename for output motion HDF5 file
-        metadata -- dictionary containing nowcast metadata (optional)
-    """
-
-    if metadata is None:
-        metadata = dict()
-
-    motion_field = gen_output.get("motion_field", None)
-
-    #Output filename
-    if nc_mot_fname is None:
-        nc_mot_fname = "nc_motion_{:%Y%m%d%H%M}.h5".format(startdate)
-
-    if all((dataset is None for dataset in gen_output.values())):
-        print("Nothing to store")
-        log("warning", "Nothing to store into .h5 file. Skipping.")
-        return None
-
-    #Write motion field in ODIM format
-    if PD["output_options"]["store_motion"]:
-        with h5py.File(os.path.join(PD["output_options"]["path"], nc_mot_fname), 'w') as outf:
-
-            #TBD! Change from pix/s to m/s
-            AMVU=motion_field[0]
-            AMVV=motion_field[1]
-
-            #Write AMVU and AMVV datasets and add attributes
-            amvu_grp=outf.create_group("/dataset1/data1")
-            amvu_grp.create_dataset("data", data=AMVU)
-            amvu_what_grp=amvu_grp.create_group("what")
-            amvu_what_grp.attrs["quantity"]="AMVU"
-
-            amvv_grp=outf.create_group("/dataset1/data2")
-            amvv_grp.create_dataset("data", data=AMVV)
-            amvv_what_grp=amvv_grp.create_group("what")
-            amvv_what_grp.attrs["quantity"]="AMVV"
-
-            #Copy attribute groups /what, /where and /how from input to output
-            #utils.copy_odim_attributes(infile,outf)
-            utils.copy_odim_attributes(PD["odim_metadata"],outf)
-
-            #Store PPN specific metadata into /how group
-            how_grp=outf["how"]
-            how_grp.attrs["domain"] = PD["nowcast_options"]["domain"]
-            how_grp.attrs["n_cascade_levels"] = PD["nowcast_options"].get("n_cascade_levels", 6)
-
-    return None
-
-
-
-def write_odim_ensemble_to_file(startdate, gen_output, nc_ens_fname=None, metadata=None):
-    """Write ensemble output in ODIM HDF5 format..
-
-    Input:
-        startdate -- nowcast analysis time (datetime object)
-        gen_output -- dictionary containing generated nowcasts
-        nc_ens_fname -- filename for output ensemble HDF5 file
-        metadata -- dictionary containing nowcast metadata (optional)
-    """
-
-    if metadata is None:
-        metadata = dict()
-
-    ensemble_forecast = gen_output.get("ensemble_forecast", None)
-
-    #Output filename
-    if nc_ens_fname is None:
-        nc_ens_fname = "nc_ens_{:%Y%m%d%H%M}.h5".format(startdate)
-
-    if all((dataset is None for dataset in gen_output.values())):
-        print("Nothing to store")
-        log("warning", "Nothing to store into .h5 file. Skipping.")
-        return None
-
-    ensemble_forecast, ens_scale_meta = prepare_data_for_writing(ensemble_forecast)
-
-    #Write ensemble forecast in ODIM format
-    if ensemble_forecast is not None and PD["output_options"]["store_ensemble"]:
-        with h5py.File(os.path.join(PD["output_options"]["path"], nc_ens_fname), 'w') as outf:
-
-            #Copy attribute groups /what, /where and /how from input to output
-            #utils.copy_odim_attributes(infile,outf)
-            utils.copy_odim_attributes(PD["odim_metadata"],outf)
-
-            # Write timeseries
-            nowcast_timestep = get_timesteps()
-            for index in range(ensemble_forecast.shape[1]):
-                timestep=nowcast_timestep
-                dset_grp=outf.create_group(f"/dataset{index+1}")
-
-                #Add attributes to each dataset
-                utils.store_odim_dset_attrs(dset_grp, index, startdate, timestep)
-
-                # Store ensemble members
-                for eidx in range(PD["ensemble_size"]):
-
-                    #Store data
-                    ts_point = ensemble_forecast[eidx, index, :, :]
-                    data_grp=dset_grp.create_group(f"data{eidx+1}")
-                    data_grp.create_dataset("data",data=ts_point)
-
-                    #Store data/what group attributes
-                    utils.store_odim_data_what_attrs(data_grp,metadata,ens_scale_meta)
-
-                    #Store PPN specific metadata into /how group
-                    how_grp=outf["how"]
-                    how_grp.attrs["zr_a"] = PD["data_options"]["zr_a"]
-                    how_grp.attrs["zr_b"] = PD["data_options"]["zr_b"]
-                    how_grp.attrs["seed"] = metadata.get("seed","Unknown")
-                    how_grp.attrs["domain"] = PD["nowcast_options"]["domain"]
-                    how_grp.attrs["ensemble_size"] = PD["ensemble_size"]
-                    how_grp.attrs["num_timesteps"] = PD["run_options"]["leadtimes"]
-                    how_grp.attrs["nowcast_timestep"] = timestep
-                    how_grp.attrs["n_cascade_levels"] = PD["nowcast_options"].get("n_cascade_levels", 6)
-                    how_grp.attrs["max_leadtime"] = PD["run_options"]["max_leadtime"]
 
     return None
 
