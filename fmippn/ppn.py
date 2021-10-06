@@ -598,38 +598,16 @@ def regenerate_ensemble_motion(motion_field, nowcast_kwargs):
 
 def prepare_data_for_writing(forecast):
     """Convert and scale ensemble and deterministic forecast data to uint16 type"""
-    if forecast is None:
-        return None, dict()
+    # Actual method moved to utils.py
+    return utils.prepare_data_for_writing(forecast,
+                                          options=PD["output_options"],
+                                          forecast_undetect=PD["out_norain_value"],
+                                          forecast_nodata=None)
 
-    # Store data in integer format to save space (float64 -> uint16)
-    store_dtype = 'uint16'
-    store_nodata_value = np.iinfo(store_dtype).max if store_dtype.startswith('u') else -1
-    scaler = PD["output_options"]["scaler"]
-    scale_zero = PD["output_options"]["scale_zero"]
-    if scale_zero in [None, "auto"]:
-        scale_zero = np.nanmin(forecast)
-    prepared_forecast = utils.prepare_fct_for_saving(forecast, scaler, scale_zero,
-                                                     store_dtype, store_nodata_value)
-
-    undetect = scaler * (PD["out_norain_value"] - scale_zero)
-
-    metadata = {
-        "nodata": store_nodata_value,
-        "gain": 1./scaler,
-        "offset": scale_zero,
-        "undetect": undetect,
-    }
-
-    return prepared_forecast, metadata
-
-# FIXME: This logic should be converted to use a list of leadtimes instead of assuming regular timestep
 def get_timesteps():
     """Return the nowcast timestep if it is regular"""
-    runopt = PD["run_options"]
-    ts = runopt.get("nowcast_timestep")
-    if ts is None:
-        return PD["data_source"]["timestep"]
-    return ts
+    # Actual method replicated in odim_io.py
+    return odim_io.get_timesteps(PD)
 
 def write_to_file(startdate, gen_output, nc_fname, metadata=None):
     """Write output to a HDF5 file.

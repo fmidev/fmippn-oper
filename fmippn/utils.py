@@ -50,35 +50,95 @@ def store_timeseries(grp, data, startdate, timestep, metadata=None):
         for key, value in metadata.items():
             tmp.attrs[key] = value
 
-
-def prepare_fct_for_saving(fct, scaler, scale_zero, store_dtype, store_nodata_value):
+def prepare_data_for_writing(forecast, options, forecast_undetect=None, forecast_nodata=None):
     """Scale and convert nowcast data to correct datatype.
 
     The data will be scaled according to equation
-        fct_scaled = scaler * (fct - scale_zero)
+        scaled_forecast = (forecast - offset) / gain
 
-    NaN values are converted to `store_nodata_value`.
+    For non-float store datatypes, NaN values are converted to `store_nodata_value`.
 
-    Input:
-        fct -- nowcast data (numpy.array)
-        scaler -- scaling term for scale equation
-        scale_zero -- value for data that will be 0 in scaled values
-        store_dtype -- data type for scaled values (numpy.dtype)
-        store_nodata_value -- Value that will be used to mark invalid elements
-                              in scaled values
+    Args:
+        forecast (numpy.array): Nowcast data
+        options (dict): output options from config
 
-    Output:
-        fct_scaled -- scaled and converted data
+    Returns:
+        tuple: (scaled_data, metadata) or (None, dict()) if forecast is None
     """
-    nodata_mask = ~np.isfinite(fct)
-    fct_scaled = scaler * (fct - scale_zero)
-    if store_nodata_value != -1 and np.any(fct_scaled >= store_nodata_value):
-        raise ValueError("Cannot store forecast to a file: One or more values would be "
-                         "larger than maximum allowed value (%i) causing overflow. "
-                         % (store_nodata_value-1))
+    # If no forecast, then no need to do anything
+    if forecast is None:
+        return None, dict()
+
+    # Store data in other datatype format to save space (e.g. float64 -> uint16)
+    # If no dtype is given, then default to not converting
+    store_dtype = options.get('convert_to_dtype', None)
+    store_dtype = np.dtype(store_dtype) if store_dtype is not None else forecast.dtype
+
+    gain = options.get('gain', None)
+    if gain is None and options.get("scaler", 0) != 0:
+        gain = 1./options["scaler"]
+
+    scale_zero = options.get('offset') if 'offset' in options else options.get("scale_zero")
+    if scale_zero in {None, "auto"}:
+        scale_zero = np.nanmin(forecast)
+
+    if forecast_nodata is not None:
+        store_nodata_value = forecast_nodata
+    else:
+        cfg_nodata = options.get('set_nodata_value_to', "default")
+        store_nodata_value = _get_default_nodata(store_dtype, cfg_nodata)
+
+    # Undetect value from input is used in thresholding the data, so let's store that if provided
+    # see generate() in ppn.py
+    if forecast_undetect is not None:
+        undetect = pack_value(forecast_undetect, gain, scale_zero)
+    else:
+        undetect = options.get('set_undetect_value_to')
+
+    # TODO: Take actual forecast_nodata value into account here, if provided
+    nodata_mask = ~np.isfinite(forecast)
+    fct_scaled = pack_value(forecast, scale_factor=gain, add_offset=scale_zero)
     fct_scaled[nodata_mask] = store_nodata_value
-    fct_scaled = fct_scaled.astype(store_dtype)
-    return fct_scaled
+    prepared_forecast = fct_scaled.astype(store_dtype)
+
+
+    metadata = {
+        "nodata": store_nodata_value,
+        "gain": gain,
+        "offset": scale_zero,
+        "undetect": undetect,
+    }
+
+    return prepared_forecast, metadata
+
+def _get_default_nodata(store_dtype, cfg_nodata):
+    if isinstance(cfg_nodata, (int, float)):
+        return cfg_nodata
+
+    # If config says "default", then pick one option based on dtype
+    default_values = {
+        "u": "max_int",  # unsigned int -> maximum value is safer than 0
+        "i": "min_int",  # signed int -> minimum value is safer choice than maximum
+        "f": "nan"       # float -> nan is available as a special value
+    }
+
+    if cfg_nodata == "default":
+        cfg_nodata = default_values.get(store_dtype.kind)
+
+    # Actual options
+    if cfg_nodata == "max_int":
+        return np.iinfo(store_dtype).max
+
+    if cfg_nodata == "min_int":
+        return np.iinfo(store_dtype).min
+
+    if cfg_nodata.lower() == "nan":
+        return np.nan
+
+    # For unknown or invalid options, raise
+    msg = ("Invalid nodata value '{}'. It must be one of following: an integer, a float, 'default',"
+           " 'max_int', 'min_int', or 'nan'.".format(cfg_nodata))
+    raise TypeError(msg)
 
 def get_odim_attrs_from_input(infile):
     """Read attribute groups /what, /where and /how from input ODIM HDF5 file.
