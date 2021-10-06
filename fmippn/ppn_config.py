@@ -81,6 +81,11 @@ def get_config(override_name=None):
     params["data_source"]["root_path"] = os.path.expanduser(params["data_source"]["root_path"])
     params["output_options"]["path"] = os.path.expanduser(params["output_options"]["path"])
     params["logging"]["log_folder"] = os.path.expanduser(params["logging"]["log_folder"])
+    params["callback_options"]["tmp_folder"] = os.path.expanduser(params["callback_options"]["tmp_folder"])
+
+    # Resolve relative paths, if any
+    params["callback_options"]["tmp_folder"] = os.path.join(params["output_options"]["path"],
+                                                            params["callback_options"]["tmp_folder"])
 
     return params
 
@@ -289,6 +294,11 @@ defaults = {
         "forecast_as_quantity": "DBZH",  # Input data is converted to this before nowcasting
         "steps_set_no_rain_to_value": -10,  # In forecast quantity units
     },
+
+    # Used when writing ensemble nowcasts after each timestep with callback function
+    "callback_options": {
+        "tmp_folder": "tmp",  # relative to output_options.path (or absolute path)
+    }
 }
 
 # Test cases

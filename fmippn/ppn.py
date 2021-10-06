@@ -84,6 +84,10 @@ def run(timestamp=None, config=None, **kwargs):
     ensemble_output_fname = os.path.join(output_options["path"], nc_fname_templ.format(date=startdate, tag="ens"))
     determ_output_fname = os.path.join(output_options["path"], nc_fname_templ.format(date=startdate, tag="det"))
 
+    # pysteps callback output folder setup
+    if run_options["run_ensemble"] and output_options["write_leadtimes_separately"]:
+        os.makedirs(PD["callback_options"]["tmp_folder"], exist_ok=True)
+
     log("debug", "Setup finished")
 
     # NOWCASTING
@@ -180,8 +184,8 @@ def run(timestamp=None, config=None, **kwargs):
                                                nowcast_kwargs, metadata=obs_metadata)
         PD["ensemble_size"] = ensemble_forecast.shape[0]
         if output_options.get("write_leadtimes_separately", False):
+            # Add any combining and cleanup here, if needed
             log("debug", "Callback was requested, will skip saving regardless of settings")
-            pass
         elif output_options.get("store_ensemble", False) and output_options.get("write_asap", False):
             log("info", "write_asap requested, writing ensemble nowcast now...")
             _out, _out_meta = prepare_data_for_writing(ensemble_forecast)
@@ -714,8 +718,7 @@ def cb_nowcast(field):
     Store the calculated field to its own hdf5 file.
     """
     timestamp = dt.datetime.utcnow()
-    folder = os.path.join(PD["output_options"]["path"], 'tmp')
-    os.makedirs(folder, exist_ok=True)
+    folder = PD["callback_options"]["tmp_folder"]
     fname = os.path.join(folder, f"{timestamp:%Y%m%d%H%M%S}.h5")
     with h5py.File(fname, 'w') as f:
         f.create_dataset('data', data=field)
