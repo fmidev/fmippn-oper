@@ -83,9 +83,16 @@ def run(timestamp=None, config=None, **kwargs):
 
     time_at_start = dt.datetime.today()
 
+    # Option groups from configuration
     run_options = PD["run_options"]
     output_options = PD["output_options"]
 
+    # Output filenames
+    motion_output_fname = os.path.join(output_options["path"], nc_fname_templ.format(date=startdate, tag="motion"))
+    ensemble_output_fname = os.path.join(output_options["path"], nc_fname_templ.format(date=startdate, tag="ens"))
+    determ_output_fname = os.path.join(output_options["path"], nc_fname_templ.format(date=startdate, tag="det"))
+
+    # Observation data input
     input_files = get_filelist(startdate, datasource)
 
     if datasource["importer"] in {"opera_hdf5", "odim_hdf5"}:
@@ -102,24 +109,26 @@ def run(timestamp=None, config=None, **kwargs):
     PD["input_quantity"] = input_quantity
 
     # generate suitable objects for passing to pysteps methods
-    if PD["run_options"]["nowcast_method"] in ["steps"]:
+    if run_options["nowcast_method"] == "steps":
         nowcast_kwargs = generate_pysteps_setup()
 
     observations, obs_metadata = read_observations(input_files, datasource, importer)
 
+    projection_meta = {
+        "projstr": obs_metadata["projection"],
+        "x1": obs_metadata["x1"],
+        "x2": obs_metadata["x2"],
+        "y1": obs_metadata["y1"],
+        "y2": obs_metadata["y2"],
+        "xpixelsize": obs_metadata["xpixelsize"],
+        "ypixelsize": obs_metadata["ypixelsize"],
+        "origin": "upper",
+    }
+
     if output_options.get("write_asap", False):
         asap_meta = {
-            "projection": {
-                "projstr": obs_metadata["projection"],
-                "x1": obs_metadata["x1"],
-                "x2": obs_metadata["x2"],
-                "y1": obs_metadata["y1"],
-                "y2": obs_metadata["y2"],
-                "xpixelsize": obs_metadata["xpixelsize"],
-                "ypixelsize": obs_metadata["ypixelsize"],
-                "origin": "upper",
-            },
-    }
+            "projection": projection_meta,
+        }
 
     # pysteps returns motion field in units of pixel/timestep
     motion_field = optflow(observations, **PD.get("motion_options", dict()))
@@ -128,13 +137,7 @@ def run(timestamp=None, config=None, **kwargs):
 
     if output_options.get("store_motion", False) and output_options.get("write_asap", False):
         log("info", "write_asap requested, writing motion field now...")
-        nc_mot_fname = os.path.join(PD["output_options"]["path"],
-                                    nc_fname_templ.format(date=startdate, tag="motion"))
-        odim_io.write_motion_to_file(PD, motion_field, nc_mot_fname, metadata=asap_meta)
-
-    # If seed is none, make a random seed.
-    if PD["nowcast_options"].get("seed") is None:
-        PD["nowcast_options"]["seed"] = random.randrange(2**32-1)
+        odim_io.write_motion_to_file(PD, motion_field, motion_output_fname, metadata=asap_meta)
 
     # Regenerate ensemble motion
     if run_options.get("regenerate_perturbed_motion"):
@@ -148,6 +151,10 @@ def run(timestamp=None, config=None, **kwargs):
     else:
         ensemble_motion = None
 
+    # If seed is none, make a random seed.
+    if PD["nowcast_options"].get("seed") is None:
+        PD["nowcast_options"]["seed"] = random.randrange(2**32-1)
+
     if run_options.get("run_deterministic"):
         deterministic, det_meta = generate_deterministic(observations[-1],
                                                          motion_field,
@@ -156,12 +163,10 @@ def run(timestamp=None, config=None, **kwargs):
         if output_options.get("store_deterministic", False) and output_options.get("write_asap", False):
             log("info", "write_asap requested, writing deterministic nowcast now...")
             _out, _out_meta = prepare_data_for_writing(deterministic)
-            nc_det_fname = os.path.join(PD["output_options"]["path"],
-                                        nc_fname_templ.format(date=startdate, tag="det"))
             asap_meta["scale_meta"] = _out_meta
             asap_meta["startdate"] = startdate
             asap_meta["unit"] = det_meta["unit"]
-            odim_io.write_deterministic_to_file(PD, _out, nc_det_fname, metadata=asap_meta)
+            odim_io.write_deterministic_to_file(PD, _out, determ_output_fname, metadata=asap_meta)
             # Release memory
             _out = None
             deterministic = None
@@ -180,12 +185,10 @@ def run(timestamp=None, config=None, **kwargs):
         elif output_options.get("store_ensemble", False) and output_options.get("write_asap", False):
             log("info", "write_asap requested, writing ensemble nowcast now...")
             _out, _out_meta = prepare_data_for_writing(ensemble_forecast)
-            nc_ens_fname = os.path.join(PD["output_options"]["path"],
-                                        nc_fname_templ.format(date=startdate, tag="ens"))
             asap_meta["scale_meta"] = _out_meta
             asap_meta["startdate"] = startdate
             asap_meta["unit"] = ens_meta["unit"]
-            odim_io.write_ensemble_to_file(PD, _out, nc_ens_fname, metadata=asap_meta)
+            odim_io.write_ensemble_to_file(PD, _out, ensemble_output_fname, metadata=asap_meta)
             # Release memory
             _out = None
             ensemble_forecast = None
@@ -216,16 +219,7 @@ def run(timestamp=None, config=None, **kwargs):
     store_meta = {
         "unit": unit,
         "seed": PD["nowcast_options"]["seed"],
-        "projection": {
-            "projstr": obs_metadata["projection"],
-            "x1": obs_metadata["x1"],
-            "x2": obs_metadata["x2"],
-            "y1": obs_metadata["y1"],
-            "y2": obs_metadata["y2"],
-            "xpixelsize": obs_metadata["xpixelsize"],
-            "ypixelsize": obs_metadata["ypixelsize"],
-            "origin": "upper",
-        },
+        "projection": projection_meta,
         "time_at_start": time_at_start,
         "time_at_end": time_at_end,
     }
@@ -236,10 +230,10 @@ def run(timestamp=None, config=None, **kwargs):
         del store_meta["seed"]
 
     # WRITE OUTPUT TO A FILE
-    if PD["output_options"].get("write_asap", False):
+    if output_options.get("write_asap", False):
         # Output is already written, skip this
         pass
-    elif PD["output_options"].get("use_old_format", False):
+    elif output_options.get("use_old_format", False):
         write_to_file(startdate, gen_output, nc_fname, store_meta)
     else:
         # Test writing ODIM output
