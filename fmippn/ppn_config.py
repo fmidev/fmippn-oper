@@ -191,6 +191,11 @@ def dump_defaults():
     Useful for creating new configurations using Python shell."""
     dump_params_to_json(defaults, "defaults")
 
+def dump_empty():
+    """Utility function for generating an empty configuration file."""
+    empty = {key: {} for key in defaults.keys()}
+    dump_params_to_json(empty, "empty")
+
 # Default parameters for PPN, other dictionaries should override these parameters
 # using dict.update() method.
 defaults = {
@@ -216,18 +221,18 @@ defaults = {
     "nowcast_options": {
         # Default to the nowcast method defaults
         # n_ens_members = 24,
-        # n_cascade_levels = 6,
+        "n_cascade_levels": 6,  # pysteps default for steps
         "fft_method": "pyfftw",
-        "vel_pert_method": "bps",  # default for pysteps, requires kmperpixel to be set
+        "vel_pert_method": "bps",  # pysteps default, requires kmperpixel to be set
         "vel_pert_kwargs": {
             # lucaskanade/fmi values given in pysteps.nowcasts.steps.forecast() method documentation
             "p_par": [2.20837526, 0.33887032, -2.48995355],
             "p_perp": [2.21722634, 0.32359621, -2.57402761],
         },
-        "domain": "spectral",  # default for pysteps
+        "domain": "spectral",  # pysteps default
 
         "num_workers": 6, # pysteps defaults to 1, we want more.
-        "seed": None,  # default for pysteps
+        "seed": None,  # pysteps default
 
         # Previously hardcoded values
         "extrap_method": "semilagrangian",
@@ -250,12 +255,17 @@ defaults = {
         "store_deterministic": True,
         #
         "as_quantity": None, # None == same as input. Other valids: DBZH, RATE (see ODIM standard)
-        "scaler": 10,
-        "scale_zero": "auto",
+        "convert_to_dtype": None,  # None == same as input. Otherwise provide a valid string for numpy.dtype()
+        #"scaler": 10, # Deprecated
+        #"scale_zero": "auto", # Deprecated
+        "gain": 0.1,
+        "offset": -32,  # "auto" for data minimum
+        # "input" values are encoded, numbers given here are not
         "set_undetect_value_to": "input", # a number or "input". input == read from input (units converted if needed)
+        "set_nodata_value_to": "default",  # A number, "default", "max_int", "min_int", or "nan" (floats only).
         #
         "write_leadtimes_separately": False, # Store each leadtime after calculating it instead of everything at the end
-
+        "write_asap": True,
         "use_old_format": False,  # Remove when postprocessing can use ODIM format
     },
 
@@ -286,5 +296,5 @@ if __name__ == '__main__':
     from pprint import pprint
     # Test custom parameter updating
     print("Updating default parameters with custom config")
-    cfg = get_config("new_config")
+    cfg = get_config("test/customised")
     pprint(cfg)
