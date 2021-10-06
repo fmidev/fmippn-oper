@@ -62,6 +62,29 @@ def get_timesteps(configuration):
         return configuration["data_source"]["timestep"]
     return ts
 
+def _convert_motion_units(data_pxts, kmperpixel=1.0, timestep=1.0):
+    """Convert atmospheric motion vectors from pixel/timestep units to m/s.
+
+    Input:
+        data_pxts -- motion vectors in "pixels per timestep" units
+        kmperpixel -- kilometers in pixel
+        timestep -- timestep lenght in minutes
+
+    Output:
+        data_ms -- motion vectors in m/s units
+    """
+    meters_per_pixel = kmperpixel * 1000
+    seconds_in_timestep = timestep * 60
+    # data unit conversion logic:
+    # px_per_timestep = px_per_s * s_per_timestep
+    #                 = px_per_km * km_per_s * s_per_timestep
+    #                 = px_per_km * km_per_m * m_per_s * s_per_timestep
+    # Solve for m_per_s:
+    # m_per_s = px_per_timestep / (px_per_km * km_per_m * s_per_timestep)
+    #         = px_per_timestep * km_per_px * m_per_km / s_per_timestep
+    #         = px_per_timestep * meters_per_pixel / seconds_in_timestep
+    data_ms = data_pxts * meters_per_pixel / seconds_in_timestep
+    return data_ms
 
 def _write(data, filename, metadata, configuration, optype=None):
     # Necessary input value checks, exit early if no need to store anything
@@ -86,6 +109,16 @@ def _write(data, filename, metadata, configuration, optype=None):
         startdate = metadata.get("startdate")
         if startdate is None:
             raise ValueError("missing startdate information from metadata dictionary")
+
+    # Conversion of motion vector units from pixel/timestep -> m/s
+    if optype == 'mot':
+        motion_timestep = configuration["data_source"].get("timestep")
+        motion_pixelsize = configuration.get("nowcast_options").get("kmperpixel")
+        data = _convert_motion_units(
+            data_pxts=data,
+            kmperpixel=motion_pixelsize,
+            timestep=motion_timestep
+        )
 
     # Remove things that break HDF5 output from metadata dictionary
     if "scale_meta" in metadata:
@@ -114,11 +147,19 @@ def _write(data, filename, metadata, configuration, optype=None):
             amvu_grp.create_dataset("data", data=AMVU)
             amvu_what_grp = amvu_grp.create_group("what")
             amvu_what_grp.attrs["quantity"] = "AMVU"
+            amvu_how_grp = amvu_grp.create_group("how")
+            amvu_how_grp.attrs["input_interval"] = 60 * motion_timestep
+            amvu_how_grp.attrs["kmperpixel"] = motion_pixelsize
+            amvu_how_grp.attrs["units"] = "m/s"
 
             amvv_grp = outf.create_group("/dataset1/data2")
             amvv_grp.create_dataset("data", data=AMVV)
             amvv_what_grp = amvv_grp.create_group("what")
             amvv_what_grp.attrs["quantity"] = "AMVV"
+            amvv_how_grp = amvv_grp.create_group("how")
+            amvv_how_grp.attrs["input_interval"] = 60 * motion_timestep
+            amvv_how_grp.attrs["kmperpixel"] = motion_pixelsize
+            amvv_how_grp.attrs["units"] = "m/s"
 
         #Write deterministic forecast timeseries in ODIM format
         elif optype == "det":
