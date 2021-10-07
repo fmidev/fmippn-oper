@@ -4,6 +4,14 @@ import logging
 
 _logger = None
 
+_logger_severity = {
+    'critical': logging.CRITICAL,
+    'debug': logging.DEBUG,
+    'error': logging.ERROR,
+    'info': logging.INFO,
+    'warning': logging.WARNING,
+}
+
 def config_logging(fname, level=logging.INFO, datefmt="%Y-%m-%d %H:%M:%S"):
     """Setup logger object using logging.basicConfig.
 
@@ -31,15 +39,7 @@ def write_to_log(level, msg, *args, **kwargs):
         raise RuntimeError("Tried to write to log before logging was configured! "
                            "Call 'configure_logging' first.")
     lvl = level.lower()
-    if lvl == 'debug':
-        _logger.debug(msg, *args, **kwargs)
-    elif lvl == 'info':
-        _logger.info(msg, *args, **kwargs)
-    elif lvl == 'error':
-        _logger.error(msg, *args, **kwargs)
-    elif lvl == 'warning':
-        _logger.warning(msg, *args, **kwargs)
-    elif lvl == 'critical':
-        _logger.critical(msg, *args, **kwargs)
-    else:
+    severity = _logger_severity.get(lvl)
+    if severity is None:
         raise ValueError("Unknown logging level {}".format(level))
+    _logger.log(severity, msg, *args, **kwargs)

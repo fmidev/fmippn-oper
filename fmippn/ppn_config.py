@@ -60,7 +60,8 @@ def get_config(override_name=None):
                          "Set 'output_options.use_old_format' to 'true'."))
 
     # Nowcast-method specific input checks
-    if runopt.get("nowcast_method") in ["steps"]:
+    # TODO: Add checks for other pysteps nowcast methods
+    if runopt.get("nowcast_method") in {"steps"}:
         # Timestep check
         d = data.get("timestep", None)
         n = ncopt.get("timestep", None)
@@ -74,7 +75,7 @@ def get_config(override_name=None):
             ).format(d, n)
             raise ValueError(error_msg_timestep_conflict)
         # kmperpixel check
-        if ncopt.get("kmperpixel", None) is None and ncopt.get("vel_pert_method") in ["bps"]:
+        if ncopt.get("kmperpixel", None) is None and ncopt.get("vel_pert_method") in {"bps"}:
             raise ValueError("Configuration error: kmperpixel is required")
 
     # Expand ~ in paths, if any
@@ -94,8 +95,8 @@ def _check_datasource(ds):
     if not isinstance(ds, dict):
         raise ValueError("Configuration error: mandatory option group 'data_source' is missing!")
 
-    required_keys = ["root_path", "path_fmt", "fn_pattern", "fn_ext", "importer",
-                     "timestep", "importer_kwargs"]  # importer_kwargs may be empty
+    required_keys = ("root_path", "path_fmt", "fn_pattern", "fn_ext", "importer",
+                     "timestep", "importer_kwargs")  # importer_kwargs may be empty
     # Go through all keys and display all missing keys
     missing = []
     for key in required_keys:
@@ -122,7 +123,7 @@ def _check_leadtime(params):
 
     # leadtimes is not given, but timestep and maximum is
     if leadtimes is None:
-        if None in [max_leadtime, nowcast_timestep]:
+        if None in (max_leadtime, nowcast_timestep):
             raise ValueError("Need to set both 'max_leadtime' and 'nowcast_timestep' if 'leadtimes'"
                              " is not given")
         leadtimes = int(max_leadtime / nowcast_timestep)

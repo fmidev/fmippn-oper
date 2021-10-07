@@ -139,27 +139,30 @@ def _write(data, filename, metadata, configuration, optype=None):
 
         #Write AMVU and AMVV datasets and add attributes
         if optype == "mot":
-            #TBD! Change from pix/s to m/s
             AMVU = data[0]
             AMVV = data[1]
+
+            how_attrs = {
+                "input_interval": 60 * motion_timestep,
+                "kmperpixel": motion_pixelsize,
+                "units": "m/s,"
+            }
 
             amvu_grp = outf.create_group("/dataset1/data1")
             amvu_grp.create_dataset("data", data=AMVU)
             amvu_what_grp = amvu_grp.create_group("what")
             amvu_what_grp.attrs["quantity"] = "AMVU"
             amvu_how_grp = amvu_grp.create_group("how")
-            amvu_how_grp.attrs["input_interval"] = 60 * motion_timestep
-            amvu_how_grp.attrs["kmperpixel"] = motion_pixelsize
-            amvu_how_grp.attrs["units"] = "m/s"
+            for key, value in how_attrs.items():
+                amvu_how_grp.attrs[key] = value
 
             amvv_grp = outf.create_group("/dataset1/data2")
             amvv_grp.create_dataset("data", data=AMVV)
             amvv_what_grp = amvv_grp.create_group("what")
             amvv_what_grp.attrs["quantity"] = "AMVV"
             amvv_how_grp = amvv_grp.create_group("how")
-            amvv_how_grp.attrs["input_interval"] = 60 * motion_timestep
-            amvv_how_grp.attrs["kmperpixel"] = motion_pixelsize
-            amvv_how_grp.attrs["units"] = "m/s"
+            for key, value in how_attrs.items():
+                amvv_how_grp.attrs[key] = value
 
         #Write deterministic forecast timeseries in ODIM format
         elif optype == "det":
