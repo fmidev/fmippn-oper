@@ -19,7 +19,7 @@ generating the file is to run following command on command line:
 """
 import logging
 import json
-import os
+from pathlib import Path
 from json.decoder import JSONDecodeError
 
 # Overriding defaults with configuration from file
@@ -79,14 +79,15 @@ def get_config(override_name=None):
             raise ValueError("Configuration error: kmperpixel is required")
 
     # Expand ~ in paths, if any
-    params["data_source"]["root_path"] = os.path.expanduser(params["data_source"]["root_path"])
-    params["output_options"]["path"] = os.path.expanduser(params["output_options"]["path"])
-    params["logging"]["log_folder"] = os.path.expanduser(params["logging"]["log_folder"])
-    params["callback_options"]["tmp_folder"] = os.path.expanduser(params["callback_options"]["tmp_folder"])
+    params["data_source"]["root_path"] = Path(params["data_source"]["root_path"]).expanduser()
+    params["output_options"]["path"] = Path(params["output_options"]["path"]).expanduser()
+    params["logging"]["log_folder"] = Path(params["logging"]["log_folder"]).expanduser()
+    params["callback_options"]["tmp_folder"] = Path(params["callback_options"]["tmp_folder"]).expanduser()
 
     # Resolve relative paths, if any
-    params["callback_options"]["tmp_folder"] = os.path.join(params["output_options"]["path"],
-                                                            params["callback_options"]["tmp_folder"])
+    params["callback_options"]["tmp_folder"] = params["output_options"]["path"].joinpath(
+        params["callback_options"]["tmp_folder"]
+    )
 
     return params
 
@@ -160,20 +161,19 @@ def get_params(name):
     Return dictionary of parameters for overriding defaults. Non-existing
     names will return an empty dictionary.
     """
-    name = os.path.splitext(name)[0] + ".json"
-    if os.path.exists(name):
+    name = Path(name).with_suffix(".json")
+    if name.exists():
         cfname = name
     else:
-        cfpath = os.path.realpath(__file__)
-        cfpath = os.path.split(cfpath)[0]
-        cfname = os.path.join(cfpath, "config/", name)
+        cfpath = Path(__file__).resolve()
+        cfname = cfpath.parent.joinpath("config", name)
     print(f"Using PPN configuration from {cfname}")
     try:
         with open(cfname, "r") as f:
             params = json.load(f)
     except FileNotFoundError as exc:
         file_missing_msg = ("Cannot find requested config '{}'! Are the filename and path correct?"
-                            "\n{}").format(os.path.splitext(name)[0], cfname)
+                            "\n{}").format(name.stem, cfname)
         raise OSError(file_missing_msg) from exc
     except JSONDecodeError as exc:
         raise RuntimeError("Could not decode config file. Is it valid JSON file?") from exc

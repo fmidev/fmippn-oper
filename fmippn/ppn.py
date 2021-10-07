@@ -10,8 +10,8 @@ Author: Petteri Karsisto
 Year: 2019
 """
 import datetime as dt
-import os
 import random
+from pathlib import Path
 
 import numpy as np
 import h5py
@@ -80,13 +80,13 @@ def run(timestamp=None, config=None, **kwargs):
     output_options = PD["output_options"]
 
     # Output filenames
-    motion_output_fname = os.path.join(output_options["path"], nc_fname_templ.format(date=startdate, tag="motion"))
-    ensemble_output_fname = os.path.join(output_options["path"], nc_fname_templ.format(date=startdate, tag="ens"))
-    determ_output_fname = os.path.join(output_options["path"], nc_fname_templ.format(date=startdate, tag="det"))
+    motion_output_fname = output_options["path"].joinpath(nc_fname_templ.format(date=startdate, tag="motion"))
+    ensemble_output_fname = output_options["path"].joinpath(nc_fname_templ.format(date=startdate, tag="ens"))
+    determ_output_fname = output_options["path"].joinpath(nc_fname_templ.format(date=startdate, tag="det"))
 
     # pysteps callback output folder setup
     if run_options["run_ensemble"] and output_options["write_leadtimes_separately"]:
-        os.makedirs(PD["callback_options"]["tmp_folder"], exist_ok=True)
+        PD["callback_options"]["tmp_folder"].mkdir(parents=True, exist_ok=True)
 
     log("debug", "Setup finished")
 
@@ -261,8 +261,8 @@ def initialise_logging(log_folder='./', log_fname='ppn.log'):
     """Wrapper for ppn_logger.config_logging() method. Does nothing if writing
     to log is not enabled."""
     if PD["logging"]["write_log"]:
-        full_path = os.path.expanduser(log_folder)
-        ppn_logger.config_logging(os.path.join(full_path, log_fname),
+        full_path = Path(log_folder).expanduser().resolve()
+        ppn_logger.config_logging(full_path / log_fname,
                                   level=PD["logging"]["log_level"])
 
 def log(level, msg, *args, **kwargs):
@@ -639,7 +639,7 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
     ensemble_forecast, ens_scale_meta = prepare_data_for_writing(ensemble_forecast)
     deterministic, det_scale_meta = prepare_data_for_writing(deterministic)
 
-    with h5py.File(os.path.join(output_options["path"], nc_fname), 'w') as outf:
+    with h5py.File(output_options["path"].joinpath(nc_fname), 'w') as outf:
         if ensemble_forecast is not None and output_options["store_ensemble"]:
             for eidx in range(PD["ensemble_size"]):
                 ens_grp = outf.create_group("member-{:0>2}".format(eidx))
@@ -719,8 +719,8 @@ def cb_nowcast(field):
     """
     timestamp = dt.datetime.utcnow()
     folder = PD["callback_options"]["tmp_folder"]
-    fname = os.path.join(folder, f"{timestamp:%Y%m%d%H%M%S}.h5")
-    with h5py.File(fname, 'w') as f:
+    fname = f"{timestamp:%Y%m%d%H%M%S}.h5"
+    with h5py.File(folder.joinpath(fname), 'w') as f:
         f.create_dataset('data', data=field)
 
 
