@@ -1,9 +1,9 @@
 {
   "data_source": {
-    "root_path": "/input",
+    "root_path": "/home/perttula/ppn_input",
     "path_fmt": "",
-    "fn_pattern": "T_PABH21_C_EUOC_%Y%m%d%H%M00",
-    "fn_ext": "hdf",
+    "fn_pattern": "%Y%m%d%H%M_europe",
+    "fn_ext": "h5",
     "importer": "opera_hdf5",
     "timestep": 15,
     "importer_kwargs": {
@@ -25,8 +25,8 @@
     "store_deterministic": true,
     "store_motion": true,
     "store_perturbed_motion": true,
-    "use_old_format": true,
-    "path": "/output"
+    "use_old_format": false,
+    "path": "/home/perttula/ppn_output/europe_hdf5"
   },
   "run_options": {
     "leadtimes": null,
@@ -68,6 +68,6 @@
   "logging": {
     "write_log": true,
     "log_level": 10,
-    "log_folder": "/log"
+    "log_folder": "/home/perttula/ppn_log"
   }
 }

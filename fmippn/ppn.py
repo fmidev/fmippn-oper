@@ -23,8 +23,12 @@ import ppn_config
 import utils
 import odim_io
 
-# Global object for storing and accessing configuration parameters
+# Global objects for storing and accessing configuration parameters
 PD = dict()
+PD_callback = dict()
+
+# Initialize callback function counter                  
+#cb_nowcast.counter = 0
 
 def run(timestamp=None, config=None, **kwargs):
     """Main function for FMI-PPN.
@@ -57,6 +61,9 @@ def run(timestamp=None, config=None, **kwargs):
     else:
         startdate = utils.utcnow_floored(increment=5)
 
+    PD["startdate"] = startdate
+    PD["config"] = config
+        
     if nc_fname is None:
         nc_fname = "nc_{:%Y%m%d%H%M}.h5".format(startdate)
         nc_fname_templ = "ppn_{date:%Y%m%d%H%M}_{tag}.h5"
@@ -87,7 +94,7 @@ def run(timestamp=None, config=None, **kwargs):
     # pysteps callback output folder setup
     if run_options["run_ensemble"] and output_options["write_leadtimes_separately"]:
         PD["callback_options"]["tmp_folder"].mkdir(parents=True, exist_ok=True)
-
+        
     log("debug", "Setup finished")
 
     # NOWCASTING
@@ -118,6 +125,9 @@ def run(timestamp=None, config=None, **kwargs):
 
     observations, obs_metadata = read_observations(input_files, datasource, importer)
 
+    # Save obs_metadata for callback function (global dictionary)
+    PD_callback['obs_metadata'] = obs_metadata
+    
     projection_meta = {
         "projstr": obs_metadata["projection"],
         "x1": obs_metadata["x1"],
@@ -255,8 +265,7 @@ def run(timestamp=None, config=None, **kwargs):
 
     log("info", "Finished writing output to a file.")
     log("info", "Run complete. Exiting.")
-
-
+    
 def initialise_logging(log_folder='./', log_fname='ppn.log'):
     """Wrapper for ppn_logger.config_logging() method. Does nothing if writing
     to log is not enabled."""
@@ -603,6 +612,7 @@ def prepare_data_for_writing(forecast):
     return utils.prepare_data_for_writing(forecast,
                                           options=PD["output_options"],
                                           forecast_undetect=PD["out_norain_value"],
+
                                           forecast_nodata=None)
 
 def get_timesteps():
@@ -711,18 +721,100 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
 
     return None
 
-# TODO: Add something to identify the ensemble member
 def cb_nowcast(field):
-    """Callback function for pysteps.
-
-    Store the calculated field to its own hdf5 file.
+    """Callback function for pysteps.                                             
+    Store calculated fields to their own hdf5 files.
     """
-    timestamp = dt.datetime.utcnow()
+    # Count calls from pysteps, used for calculating the timestamp.
+    cb_nowcast.counter += 1
+    timestep=PD["run_options"]["nowcast_timestep"]
+    timestamp = PD["startdate"] + cb_nowcast.counter * dt.timedelta(minutes=timestep)
     folder = PD["callback_options"]["tmp_folder"]
-    fname = f"{timestamp:%Y%m%d%H%M%S}.h5"
-    with h5py.File(folder.joinpath(fname), 'w') as f:
-        f.create_dataset('data', data=field)
 
+    # Process data to wanted output format
+    field, metadata, scale_meta = generate_callback(field)
+    
+    # Store each ensemble member separately
+    for i in range(field.shape[0]):
+        member=i+1
+        fname = f"{PD['startdate']:%Y%m%d%H%M}+{cb_nowcast.counter*timestep:03}min_radar.fmippn.ens_config={PD['config']}_ensmem={member}.h5"
+        with h5py.File(folder.joinpath(fname), 'w') as f:
 
+            # Copy /how, /what and /where groups from input data
+            utils.copy_odim_attributes(PD["odim_metadata"],f)
+            
+            # Create /dataset1 group and store attributes
+            dset_grp=f.create_group("/dataset1")
+            utils.store_odim_dset_attrs(dset_grp, cb_nowcast.counter-1, PD["startdate"], PD["run_options"]["nowcast_timestep"])
+
+            # Create /dataset1/data1 group and store dataset and attributes
+            data_grp=dset_grp.create_group("data1")
+            data_grp.create_dataset("data",data=field[i,:,:])
+
+            # Store attributes in /dataset1/data1/what (offset, gain, nodata, undetect etc)
+            utils.store_odim_data_what_attrs(data_grp, metadata, scale_meta)
+            
+            #Store PPN specific metadata into /how group
+            how_grp=f["/how"]
+            how_grp.attrs["zr_a"] = PD["data_options"]["zr_a"]
+            how_grp.attrs["zr_b"] = PD["data_options"]["zr_b"]
+            how_grp.attrs["seed"] = PD["nowcast_options"]["seed"]
+            how_grp.attrs["ensemble_size"] = PD["nowcast_options"]["n_ens_members"]
+            how_grp.attrs["num_timesteps"] = PD["run_options"]["leadtimes"]
+            how_grp.attrs["nowcast_timestep"] = PD["run_options"]["nowcast_timestep"]
+            how_grp.attrs["max_leadtime"] = PD["run_options"]["max_leadtime"]
+
+            
+# Initialize callback function counter                                                                                                    
+cb_nowcast.counter = 0
+            
+def generate_callback(forecast):
+    """
+    Copied everything except pysteps call from generate function.
+    """
+
+    # Get metadata from PD_callback global dictionary
+    metadata = PD_callback['obs_metadata']
+    
+    if (metadata["unit"] == "mm/h") and (metadata["transform"] == "dB"):
+        forecast, meta = transform_to_decibels(forecast, metadata, inverse=True)
+    else:
+        meta = metadata
+
+    out_qty = PD["output_options"].get("as_quantity", None)
+    if out_qty is None:
+        out_qty = PD["input_quantity"]
+
+    if utils.quantity_is_dbzh(out_qty) and metadata["unit"] == "mm/h":
+        forecast, meta = rrate_to_dbz(forecast, meta)
+
+    elif utils.quantity_is_rate(out_qty) and metadata["unit"] == "dBZ":
+        forecast, meta = dbz_to_rrate(forecast, meta)
+            # Might need to convert the norain value and threshold, too                        
+    if "out_rain_threshold" not in PD:
+        _rain_threshold = PD["data_options"].get("rain_threshold")
+        PD["out_rain_threshold"] = _convert_for_output(_rain_threshold, out_qty)
+
+    if "out_norain_value" not in PD:
+        _norain = PD["output_options"].get("set_undetect_value_to", "input")
+        if _norain == "input":
+            _norain = PD["data_undetect"]
+            PD["out_norain_value"] = _convert_for_output(_norain, out_qty)
+        else:
+            PD["out_norain_value"] = _norain
+
+    rain_threshold = PD["out_rain_threshold"]
+    norain_for_output = PD["out_norain_value"]
+    
+    forecast, meta = thresholding(forecast, meta, threshold=rain_threshold,
+                                  norain_value=norain_for_output, fill_nan=False)
+
+    forecast, scale_meta = prepare_data_for_writing(forecast)
+    
+    if meta is None:
+        meta = dict()
+    return forecast, meta, scale_meta
+
+        
 if __name__ == '__main__':
     run(test=True)
