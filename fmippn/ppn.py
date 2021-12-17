@@ -27,9 +27,6 @@ import odim_io
 PD = dict()
 PD_callback = dict()
 
-# Initialize callback function counter                  
-#cb_nowcast.counter = 0
-
 def run(timestamp=None, config=None, **kwargs):
     """Main function for FMI-PPN.
 
@@ -125,7 +122,7 @@ def run(timestamp=None, config=None, **kwargs):
 
     observations, obs_metadata = read_observations(input_files, datasource, importer)
 
-    # Save obs_metadata for callback function (global dictionary)
+    # Save obs_metadata in callback function (global dictionary)
     PD_callback['obs_metadata'] = obs_metadata
     
     projection_meta = {
@@ -180,7 +177,12 @@ def run(timestamp=None, config=None, **kwargs):
             asap_meta["scale_meta"] = _out_meta
             asap_meta["startdate"] = startdate
             asap_meta["unit"] = det_meta["unit"]
-            odim_io.write_deterministic_to_file(PD, _out, determ_output_fname, metadata=asap_meta)
+            
+            if output_options.get("write_leadtimes_separately", False):
+                log("info", "separate output requested for deterministic nowcast")
+                write_deterministic_separate_odim_output(_out, asap_meta, _out_meta)                
+            else:
+                odim_io.write_deterministic_to_file(PD, _out, determ_output_fname, metadata=asap_meta)      
             # Release memory
             _out = None
             deterministic = None
@@ -620,8 +622,142 @@ def get_timesteps():
     # Actual method replicated in odim_io.py
     return odim_io.get_timesteps(PD)
 
+
+def write_deterministic_separate_odim_output(field, metadata, store_meta):
+    """Write deterministic forecast single dataset per file.
+    """
+
+    folder = PD["callback_options"]["tmp_folder"]
+    
+    for i in range(field.shape[0]):
+        timestep=PD["run_options"]["nowcast_timestep"]
+        timestamp = PD["startdate"] + (i+1) * dt.timedelta(minutes=timestep)
+        fname = f"{PD['startdate']:%Y%m%d%H%M}+{(i+1)*timestep:03}min_radar.fmippn.det_config={PD['config']}.h5"
+        with h5py.File(folder.joinpath(fname), 'w') as f:
+            write_odim_output_separately(f, i, field[i,:,:], metadata, store_meta, fc_type="det")
+
+
+
+def cb_nowcast(field):
+    """Callback function for pysteps.                                             
+    Store calculated fields to their own hdf5 files.
+    """
+    # Count calls from pysteps, used for calculating the timestamp.
+    n_timestep = cb_nowcast.counter
+    cb_nowcast.counter += 1
+    
+    timestep=PD["run_options"]["nowcast_timestep"]
+    timestamp = PD["startdate"] + cb_nowcast.counter * dt.timedelta(minutes=timestep)
+    folder = PD["callback_options"]["tmp_folder"]
+
+    # Process data to wanted output format
+    field, metadata, store_meta = process_callback_output(field)
+    
+    # Store each ensemble member separately
+    for i in range(field.shape[0]):
+        member=i+1
+        fname = f"{PD['startdate']:%Y%m%d%H%M}+{cb_nowcast.counter*timestep:03}min_radar.fmippn.ens_config={PD['config']}_ensmem={member}.h5"
+        with h5py.File(folder.joinpath(fname), 'w') as f:
+
+            write_odim_output_separately(f, n_timestep, field[i,:,:], metadata, store_meta, fc_type="ens")
+            
+            
+# Initialize callback function counter                                                                                                    
+cb_nowcast.counter = 0
+
+
+def write_odim_output_separately(f, n_timestep, n_field, metadata, store_meta, fc_type=False):
+    """    Write single dataset per ODIM HDF5 file.
+
+    Input:
+        f -- h5py file object
+        n_timestep -- leadtime number
+        n_field -- leadtime field
+        metadata -- dictionary containing nowcast metadata
+        store_meta -- dictionary containing output metadata (gain, offset etc.)
+    
+    """
+    
+    # Copy /how, /what and /where groups from input data
+    utils.copy_odim_attributes(PD["odim_metadata"],f)
+    
+    # Create /dataset1 group and store attributes
+    dset_grp=f.create_group("/dataset1")
+    utils.store_odim_dset_attrs(dset_grp, n_timestep, PD["startdate"], PD["run_options"]["nowcast_timestep"])
+
+    # Create /dataset1/data1 group and store dataset and attributes
+    data_grp=dset_grp.create_group("data1")
+    data_grp.create_dataset("data",data=n_field)
+
+    # Store attributes in /dataset1/data1/what (offset, gain, nodata, undetect etc)
+    utils.store_odim_data_what_attrs(data_grp, metadata, store_meta)
+            
+    #Store PPN specific metadata into /how group
+    how_grp=f["/how"]
+    how_grp.attrs["zr_a"] = PD["data_options"]["zr_a"]
+    how_grp.attrs["zr_b"] = PD["data_options"]["zr_b"]
+    how_grp.attrs["num_timesteps"] = PD["run_options"]["leadtimes"]
+    how_grp.attrs["nowcast_timestep"] = PD["run_options"]["nowcast_timestep"]
+    how_grp.attrs["max_leadtime"] = PD["run_options"]["max_leadtime"]
+
+    #Store ensemble forecast specific metadata
+    if fc_type == "ens":
+        how_grp.attrs["ensemble_size"] = PD["nowcast_options"]["n_ens_members"]
+        how_grp.attrs["seed"] = PD["nowcast_options"]["seed"]
+    
+
+def process_callback_output(forecast):
+    """
+    Copied everything except pysteps call from generate function.
+    """
+
+    # Get metadata from PD_callback global dictionary
+    metadata = PD_callback['obs_metadata']
+    
+    if (metadata["unit"] == "mm/h") and (metadata["transform"] == "dB"):
+        forecast, meta = transform_to_decibels(forecast, metadata, inverse=True)
+    else:
+        meta = metadata
+
+    out_qty = PD["output_options"].get("as_quantity", None)
+    if out_qty is None:
+        out_qty = PD["input_quantity"]
+
+    if utils.quantity_is_dbzh(out_qty) and metadata["unit"] == "mm/h":
+        forecast, meta = rrate_to_dbz(forecast, meta)
+
+    elif utils.quantity_is_rate(out_qty) and metadata["unit"] == "dBZ":
+        forecast, meta = dbz_to_rrate(forecast, meta)
+            # Might need to convert the norain value and threshold, too                        
+    if "out_rain_threshold" not in PD:
+        _rain_threshold = PD["data_options"].get("rain_threshold")
+        PD["out_rain_threshold"] = _convert_for_output(_rain_threshold, out_qty)
+
+    if "out_norain_value" not in PD:
+        _norain = PD["output_options"].get("set_undetect_value_to", "input")
+        if _norain == "input":
+            _norain = PD["data_undetect"]
+            PD["out_norain_value"] = _convert_for_output(_norain, out_qty)
+        else:
+            PD["out_norain_value"] = _norain
+
+    rain_threshold = PD["out_rain_threshold"]
+    norain_for_output = PD["out_norain_value"]
+    
+    forecast, meta = thresholding(forecast, meta, threshold=rain_threshold,
+                                  norain_value=norain_for_output, fill_nan=False)
+
+    forecast, store_meta = prepare_data_for_writing(forecast)
+    
+    if meta is None:
+        meta = dict()
+    return forecast, meta, store_meta
+
+
 def write_to_file(startdate, gen_output, nc_fname, metadata=None):
     """Write output to a HDF5 file.
+       This function writes old style output format.
+       ODIM format output files are written in file odim_io.py.
 
     Input:
         startdate -- nowcast analysis time (datetime object)
@@ -720,100 +856,6 @@ def write_to_file(startdate, gen_output, nc_fname, metadata=None):
             proj_meta.attrs[key] = value
 
     return None
-
-def cb_nowcast(field):
-    """Callback function for pysteps.                                             
-    Store calculated fields to their own hdf5 files.
-    """
-    # Count calls from pysteps, used for calculating the timestamp.
-    cb_nowcast.counter += 1
-    timestep=PD["run_options"]["nowcast_timestep"]
-    timestamp = PD["startdate"] + cb_nowcast.counter * dt.timedelta(minutes=timestep)
-    folder = PD["callback_options"]["tmp_folder"]
-
-    # Process data to wanted output format
-    field, metadata, scale_meta = generate_callback(field)
-    
-    # Store each ensemble member separately
-    for i in range(field.shape[0]):
-        member=i+1
-        fname = f"{PD['startdate']:%Y%m%d%H%M}+{cb_nowcast.counter*timestep:03}min_radar.fmippn.ens_config={PD['config']}_ensmem={member}.h5"
-        with h5py.File(folder.joinpath(fname), 'w') as f:
-
-            # Copy /how, /what and /where groups from input data
-            utils.copy_odim_attributes(PD["odim_metadata"],f)
-            
-            # Create /dataset1 group and store attributes
-            dset_grp=f.create_group("/dataset1")
-            utils.store_odim_dset_attrs(dset_grp, cb_nowcast.counter-1, PD["startdate"], PD["run_options"]["nowcast_timestep"])
-
-            # Create /dataset1/data1 group and store dataset and attributes
-            data_grp=dset_grp.create_group("data1")
-            data_grp.create_dataset("data",data=field[i,:,:])
-
-            # Store attributes in /dataset1/data1/what (offset, gain, nodata, undetect etc)
-            utils.store_odim_data_what_attrs(data_grp, metadata, scale_meta)
-            
-            #Store PPN specific metadata into /how group
-            how_grp=f["/how"]
-            how_grp.attrs["zr_a"] = PD["data_options"]["zr_a"]
-            how_grp.attrs["zr_b"] = PD["data_options"]["zr_b"]
-            how_grp.attrs["seed"] = PD["nowcast_options"]["seed"]
-            how_grp.attrs["ensemble_size"] = PD["nowcast_options"]["n_ens_members"]
-            how_grp.attrs["num_timesteps"] = PD["run_options"]["leadtimes"]
-            how_grp.attrs["nowcast_timestep"] = PD["run_options"]["nowcast_timestep"]
-            how_grp.attrs["max_leadtime"] = PD["run_options"]["max_leadtime"]
-
-            
-# Initialize callback function counter                                                                                                    
-cb_nowcast.counter = 0
-            
-def generate_callback(forecast):
-    """
-    Copied everything except pysteps call from generate function.
-    """
-
-    # Get metadata from PD_callback global dictionary
-    metadata = PD_callback['obs_metadata']
-    
-    if (metadata["unit"] == "mm/h") and (metadata["transform"] == "dB"):
-        forecast, meta = transform_to_decibels(forecast, metadata, inverse=True)
-    else:
-        meta = metadata
-
-    out_qty = PD["output_options"].get("as_quantity", None)
-    if out_qty is None:
-        out_qty = PD["input_quantity"]
-
-    if utils.quantity_is_dbzh(out_qty) and metadata["unit"] == "mm/h":
-        forecast, meta = rrate_to_dbz(forecast, meta)
-
-    elif utils.quantity_is_rate(out_qty) and metadata["unit"] == "dBZ":
-        forecast, meta = dbz_to_rrate(forecast, meta)
-            # Might need to convert the norain value and threshold, too                        
-    if "out_rain_threshold" not in PD:
-        _rain_threshold = PD["data_options"].get("rain_threshold")
-        PD["out_rain_threshold"] = _convert_for_output(_rain_threshold, out_qty)
-
-    if "out_norain_value" not in PD:
-        _norain = PD["output_options"].get("set_undetect_value_to", "input")
-        if _norain == "input":
-            _norain = PD["data_undetect"]
-            PD["out_norain_value"] = _convert_for_output(_norain, out_qty)
-        else:
-            PD["out_norain_value"] = _norain
-
-    rain_threshold = PD["out_rain_threshold"]
-    norain_for_output = PD["out_norain_value"]
-    
-    forecast, meta = thresholding(forecast, meta, threshold=rain_threshold,
-                                  norain_value=norain_for_output, fill_nan=False)
-
-    forecast, scale_meta = prepare_data_for_writing(forecast)
-    
-    if meta is None:
-        meta = dict()
-    return forecast, meta, scale_meta
 
         
 if __name__ == '__main__':

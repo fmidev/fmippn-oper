@@ -86,6 +86,7 @@ def _convert_motion_units(data_pxts, kmperpixel=1.0, timestep=1.0):
     data_ms = data_pxts * meters_per_pixel / seconds_in_timestep
     return data_ms
 
+
 def _write(data, filename, metadata, configuration, optype=None):
     # Necessary input value checks, exit early if no need to store anything
     if data is None:
@@ -226,3 +227,6 @@ def _write(data, filename, metadata, configuration, optype=None):
                                                                                      default_cascade_levels)
 
     return None
+
+
+
