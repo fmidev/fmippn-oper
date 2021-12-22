@@ -2,10 +2,10 @@
   "data_source": {
     "root_path": "/input",
     "path_fmt": "",
-    "fn_pattern": "T_PABH21_C_EUOC_%Y%m%d%H%M00",
-    "fn_ext": "hdf",
+    "fn_pattern": "%Y%m%d%H%M_radar.rack.comp_CONF=FMIPPN,ANDRE",
+    "fn_ext": "h5",
     "importer": "opera_hdf5",
-    "timestep": 15,
+    "timestep": 5,
     "importer_kwargs": {
       "gzipped": false,
       "qty": "DBZH"
@@ -26,13 +26,21 @@
     "store_motion": true,
     "store_perturbed_motion": true,
     "use_old_format": false,
-    "path": "/output"
+    "path": "/output",
+    "convert_to_dtype": "uint16",
+    "gain": 0.1,
+    "offset": -32,
+    "set_undetect_value_to": "input",
+    "set_nodata_value_to": "default",
+    "write_leadtimes_separately": true,
+    "write_asap": true
+
   },
   "run_options": {
     "leadtimes": null,
-    "nowcast_timestep": 15,
+    "nowcast_timestep": 5,
     "num_prev_observations": 3,
-    "max_leadtime": 180,
+    "max_leadtime": 60,
     "run_deterministic": true,
     "run_ensemble": true,
     "regenerate_perturbed_motion": false,
@@ -44,9 +52,9 @@
   },
   "nowcast_options": {
     "kmperpixel": 2.0,
-    "timestep": 15,
+    "timestep": 5,
     "fft_method": "pyfftw",
-    "n_ens_members": 5,
+    "n_ens_members": 3,
     "n_cascade_levels": 8,
     "num_workers": 10,
     "domain": "spectral",
@@ -63,7 +71,10 @@
         0
       ]
     },
-    "seed": null
+      "seed": null
+  },
+  "callback_options": {
+    "tmp_folder": ""
   },
   "logging": {
     "write_log": true,

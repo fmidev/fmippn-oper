@@ -1,11 +1,11 @@
 {
   "data_source": {
-    "root_path": "/home/perttula/ppn_input",
+    "root_path": "/input",
     "path_fmt": "",
-    "fn_pattern": "%Y%m%d%H%M_radar.rack.comp_CONF=FMIPPN,ANDRE",
+    "fn_pattern": "%Y%m%d%H%M_europe",
     "fn_ext": "h5",
     "importer": "opera_hdf5",
-    "timestep": 5,
+    "timestep": 15,
     "importer_kwargs": {
       "gzipped": false,
       "qty": "DBZH"
@@ -26,21 +26,13 @@
     "store_motion": true,
     "store_perturbed_motion": true,
     "use_old_format": false,
-    "path": "/home/perttula/ppn_output/ravake_hdf5",
-    "convert_to_dtype": "uint16",
-    "gain": 0.1,
-    "offset": -32,
-    "set_undetect_value_to": "input",
-    "set_nodata_value_to": "default",
-    "write_leadtimes_separately": true,
-    "write_asap": true
-
+    "path": "/output"
   },
   "run_options": {
     "leadtimes": null,
-    "nowcast_timestep": 5,
+    "nowcast_timestep": 15,
     "num_prev_observations": 3,
-    "max_leadtime": 60,
+    "max_leadtime": 180,
     "run_deterministic": true,
     "run_ensemble": true,
     "regenerate_perturbed_motion": false,
@@ -52,9 +44,9 @@
   },
   "nowcast_options": {
     "kmperpixel": 2.0,
-    "timestep": 5,
+    "timestep": 15,
     "fft_method": "pyfftw",
-    "n_ens_members": 3,
+    "n_ens_members": 5,
     "n_cascade_levels": 8,
     "num_workers": 10,
     "domain": "spectral",
@@ -71,11 +63,14 @@
         0
       ]
     },
-      "seed": null
+    "seed": 20190821
+  },
+  "callback_options": {
+    "tmp_folder": ""
   },
   "logging": {
     "write_log": true,
     "log_level": 10,
-    "log_folder": "/home/perttula/ppn_log"
+    "log_folder": "/log"
   }
 }

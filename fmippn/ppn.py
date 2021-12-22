@@ -63,7 +63,7 @@ def run(timestamp=None, config=None, **kwargs):
         
     if nc_fname is None:
         nc_fname = "nc_{:%Y%m%d%H%M}.h5".format(startdate)
-        nc_fname_templ = "ppn_{date:%Y%m%d%H%M}_{tag}.h5"
+        nc_fname_templ = "{date:%Y%m%d%H%M}_radar.fmippn.{tag}_conf={config}.h5"
 
     # GENERAL SETUP
 
@@ -84,9 +84,9 @@ def run(timestamp=None, config=None, **kwargs):
     output_options = PD["output_options"]
 
     # Output filenames
-    motion_output_fname = output_options["path"].joinpath(nc_fname_templ.format(date=startdate, tag="motion"))
-    ensemble_output_fname = output_options["path"].joinpath(nc_fname_templ.format(date=startdate, tag="ens"))
-    determ_output_fname = output_options["path"].joinpath(nc_fname_templ.format(date=startdate, tag="det"))
+    motion_output_fname = output_options["path"].joinpath(nc_fname_templ.format(date=startdate, tag="motion", config=config))
+    ensemble_output_fname = output_options["path"].joinpath(nc_fname_templ.format(date=startdate, tag="ens", config=config))
+    determ_output_fname = output_options["path"].joinpath(nc_fname_templ.format(date=startdate, tag="det", config=config))
 
     # pysteps callback output folder setup
     if run_options["run_ensemble"] and output_options["write_leadtimes_separately"]:
@@ -632,7 +632,7 @@ def write_deterministic_separate_odim_output(field, metadata, store_meta):
     for i in range(field.shape[0]):
         timestep=PD["run_options"]["nowcast_timestep"]
         timestamp = PD["startdate"] + (i+1) * dt.timedelta(minutes=timestep)
-        fname = f"{PD['startdate']:%Y%m%d%H%M}+{(i+1)*timestep:03}min_radar.fmippn.det_config={PD['config']}.h5"
+        fname = f"{PD['startdate']:%Y%m%d%H%M}+{(i+1)*timestep:03}min_radar.fmippn.det_conf={PD['config']}.h5"
         with h5py.File(folder.joinpath(fname), 'w') as f:
             write_odim_output_separately(f, i, field[i,:,:], metadata, store_meta, fc_type="det")
 
@@ -656,7 +656,7 @@ def cb_nowcast(field):
     # Store each ensemble member separately
     for i in range(field.shape[0]):
         member=i+1
-        fname = f"{PD['startdate']:%Y%m%d%H%M}+{cb_nowcast.counter*timestep:03}min_radar.fmippn.ens_config={PD['config']}_ensmem={member}.h5"
+        fname = f"{PD['startdate']:%Y%m%d%H%M}+{cb_nowcast.counter*timestep:03}min_radar.fmippn.ens_conf={PD['config']}_ensmem={member}.h5"
         with h5py.File(folder.joinpath(fname), 'w') as f:
 
             write_odim_output_separately(f, n_timestep, field[i,:,:], metadata, store_meta, fc_type="ens")

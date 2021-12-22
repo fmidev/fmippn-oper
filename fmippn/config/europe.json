@@ -65,6 +65,9 @@
     },
     "seed": 20190821
   },
+  "callback_options": {
+    "tmp_folder": ""
+  },
   "logging": {
     "write_log": true,
     "log_level": 10,
