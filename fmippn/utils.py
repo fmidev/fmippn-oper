@@ -88,6 +88,8 @@ def prepare_data_for_writing(forecast, options, forecast_undetect=None, forecast
         cfg_nodata = options.get('set_nodata_value_to', "default")
         store_nodata_value = _get_default_nodata(store_dtype, cfg_nodata)
 
+    print('forecast_undetect before packing:', forecast_undetect)
+        
     # Undetect value from input is used in thresholding the data, so let's store that if provided
     # see generate() in ppn.py
     if forecast_undetect is not None:
@@ -95,12 +97,18 @@ def prepare_data_for_writing(forecast, options, forecast_undetect=None, forecast
     else:
         undetect = options.get('set_undetect_value_to')
 
+    print('undetect after packing:', undetect)
+        
     # TODO: Take actual forecast_nodata value into account here, if provided
     nodata_mask = ~np.isfinite(forecast)
     fct_scaled = pack_value(forecast, scale_factor=gain, add_offset=scale_zero)
     fct_scaled[nodata_mask] = store_nodata_value
+    
+    # Tuuli added masking and filling undetect value:
+    undetect_mask = (fct_scaled == undetect)
+    fct_scaled[undetect_mask] = options.get('set_undetect_value_to')
+    
     prepared_forecast = fct_scaled.astype(store_dtype)
-
 
     metadata = {
         "nodata": store_nodata_value,
